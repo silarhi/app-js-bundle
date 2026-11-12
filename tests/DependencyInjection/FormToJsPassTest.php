@@ -44,6 +44,28 @@ final class FormToJsPassTest extends TestCase
         self::assertTrue($container->hasDefinition(LeaseFormVariants::class));
     }
 
+    public function testDoesNothingWithoutSymfonyForm(): void
+    {
+        $container = new ContainerBuilder();
+
+        (new FormToJsPass())->process($container);
+
+        self::assertFalse($container->hasDefinition(FormToJsPass::DUMPER));
+    }
+
+    public function testSkipsTheFormTypesWhoseClassIsNoString(): void
+    {
+        $container = $this->createContainer([UserType::class]);
+        $container->setParameter('form_types', [UserType::class]);
+        $container->register('dynamic_type', '%form_types%')->addTag('form.type');
+
+        (new FormToJsPass())->process($container);
+
+        $forms = $container->getDefinition(FormToJsPass::DUMPER)->getArgument('$forms');
+        self::assertIsArray($forms);
+        self::assertSame([UserType::class], array_keys($forms));
+    }
+
     public function testRemovesTheFormServicesWithoutTheFormIntegration(): void
     {
         $container = $this->createContainer([UserType::class]);

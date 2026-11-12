@@ -19,6 +19,7 @@ use Silarhi\AppJsBundle\Tests\Fixtures\TestKernel;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Filesystem\Filesystem;
 use Twig\Environment;
@@ -98,6 +99,24 @@ final class BundleTest extends KernelTestCase
         self::assertStringContainsString('1 form(s) may miss fields (--strict).', $tester->getDisplay());
     }
 
+    public function testListsTheChangedFilesWhenVerbose(): void
+    {
+        $enums = $this->executeCommand('app-js:dump-enums', [], verbosity: OutputInterface::VERBOSITY_VERBOSE)->getDisplay();
+        $forms = $this->executeCommand('app-js:dump-forms', [], verbosity: OutputInterface::VERBOSITY_VERBOSE)->getDisplay();
+
+        self::assertStringContainsString('* Status.ts', $enums);
+        self::assertStringContainsString('* UserForm.ts', $forms);
+    }
+
+    public function testCheckFailsOnOutOfDateFormShapes(): void
+    {
+        $tester = $this->executeCommand('app-js:dump-forms', ['--check' => true]);
+
+        self::assertSame(Command::FAILURE, $tester->getStatusCode());
+        self::assertStringContainsString('* UserForm.ts', $tester->getDisplay());
+        self::assertStringContainsString('3 form file(s) out of date', (string) preg_replace('/\s+/', ' ', $tester->getDisplay()));
+    }
+
     public function testCheckFailsUntilTheFilesAreDumped(): void
     {
         self::assertSame(Command::FAILURE, $this->executeCommand('app-js:dump-enums', ['--check' => true])->getStatusCode());
@@ -125,10 +144,10 @@ final class BundleTest extends KernelTestCase
     /**
      * @param array<string, mixed> $input
      */
-    private function executeCommand(string $name, array $input = [], string $environment = 'test'): CommandTester
+    private function executeCommand(string $name, array $input = [], string $environment = 'test', int $verbosity = OutputInterface::VERBOSITY_NORMAL): CommandTester
     {
         $tester = new CommandTester((new Application(self::bootKernel(['environment' => $environment])))->find($name));
-        $tester->execute($input);
+        $tester->execute($input, ['verbosity' => $verbosity]);
 
         return $tester;
     }
