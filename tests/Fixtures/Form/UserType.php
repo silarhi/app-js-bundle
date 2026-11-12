@@ -37,6 +37,8 @@ final class UserType extends AbstractType
             ->add('size', ChoiceType::class, ['choices' => ['S' => 's', 'M' => 'm'], 'expanded' => true])
             ->add('tags', ChoiceType::class, ['choices' => ['A' => 'a'], 'expanded' => true, 'multiple' => true])
             ->add('address', AddressType::class)
+            // Not the shape of AddressForm: written out
+            ->add('billingAddress', AddressType::class, ['with_country' => true])
             ->add('phones', CollectionType::class, ['entry_type' => PhoneType::class, 'allow_add' => true])
             ->add('notes', CollectionType::class, ['entry_type' => TextType::class, 'allow_add' => true])
             ->add('emails', CollectionType::class, ['entry_type' => TextType::class])
