@@ -1,0 +1,87 @@
+{
+    "name": "silarhi/app-js-bundle",
+    "description": "load_page Twig function, TypeScript enums and typed form shapes for Symfony — the PHP companion to @silarhi/app-js",
+    "license": "MIT",
+    "type": "symfony-bundle",
+    "keywords": [
+        "symfony",
+        "symfony-bundle",
+        "typescript",
+        "enum",
+        "form",
+        "twig",
+        "code-generation"
+    ],
+    "authors": [
+        {
+            "name": "SILARHI",
+            "email": "dev@silarhi.fr"
+        }
+    ],
+    "homepage": "https://github.com/silarhi/app-js-bundle",
+    "support": {
+        "issues": "https://github.com/silarhi/app-js-bundle/issues",
+        "source": "https://github.com/silarhi/app-js-bundle"
+    },
+    "require": {
+        "php": ">=8.2",
+        "symfony/config": "^6.4 || ^7.0 || ^8.0",
+        "symfony/console": "^6.4 || ^7.0 || ^8.0",
+        "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
+        "symfony/filesystem": "^6.4 || ^7.0 || ^8.0",
+        "symfony/finder": "^6.4 || ^7.0 || ^8.0",
+        "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
+        "symfony/string": "^6.4 || ^7.0 || ^8.0"
+    },
+    "require-dev": {
+        "ergebnis/composer-normalize": "^2.54.0",
+        "friendsofphp/php-cs-fixer": "^3.95.27",
+        "phpstan/extension-installer": "^1.4.3",
+        "phpstan/phpstan": "^2.3.3",
+        "phpstan/phpstan-strict-rules": "^2.1.0",
+        "phpstan/phpstan-symfony": "^2.1.1",
+        "phpunit/phpunit": "^11.5.57 || ^12.5.38 || ^13.4.1",
+        "rector/rector": "^2.8.1",
+        "symfony/error-handler": "^6.4 || ^7.0 || ^8.0",
+        "symfony/form": "^6.4 || ^7.0 || ^8.0",
+        "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+        "symfony/security-csrf": "^6.4 || ^7.0 || ^8.0",
+        "symfony/twig-bundle": "^6.4 || ^7.0 || ^8.0",
+        "twig/twig": "^3.8"
+    },
+    "conflict": {
+        "symfony/form": "<6.4",
+        "twig/twig": "<3.8"
+    },
+    "suggest": {
+        "symfony/form": "Enables the form shapes (app-js:dump-forms)",
+        "twig/twig": "Enables the load_page Twig function"
+    },
+    "autoload": {
+        "psr-4": {
+            "Silarhi\\AppJsBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Silarhi\\AppJsBundle\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true,
+            "phpstan/extension-installer": true
+        },
+        "audit": {
+            "block-insecure": false
+        },
+        "preferred-install": {
+            "*": "dist"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "bump:tools": "@composer bump ergebnis/composer-normalize friendsofphp/php-cs-fixer phpstan/* phpunit/phpunit rector/rector",
+        "test": "phpunit"
+    }
+}
