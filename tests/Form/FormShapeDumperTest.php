@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\Form\FormShapeDumper;
 use Silarhi\AppJsBundle\Form\Variant\FormVariant;
 use Silarhi\AppJsBundle\Form\Variant\StaticFormVariantProvider;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ButtonsType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\InvokableListener;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ListenersType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\RenderedItemsType;
@@ -51,6 +52,17 @@ final class FormShapeDumperTest extends TestCase
         $dump = $this->createDumper([ListenersType::class => ['name' => 'ListenersForm', 'dynamic' => false]])->dump();
 
         self::assertSame([], $dump->warnings);
+    }
+
+    public function testDumpsTheButtonsAsFields(): void
+    {
+        $dump = $this->createDumper([ButtonsType::class => ['name' => 'ButtonsForm', 'dynamic' => true]])->dump();
+
+        self::assertSame([], $dump->warnings);
+        self::assertStringContainsString(
+            "    name: FormField\n    actions: FormCollection<{\n        label: FormField\n        remove: FormField\n    }>\n    preview: FormField\n    generate: FormField\n",
+            $dump->files['ButtonsForm.ts'],
+        );
     }
 
     public function testReadsTheItemShapeFromTheRenderedItems(): void
