@@ -4,14 +4,14 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.4.0] - Unreleased
+## [0.4.0] - 2026-11-13
 
 ### Added
 
 - `app-js:dump-forms` names the element each field is rendered as: `FormField<HTMLSelectElement>` for a choice,
   `HTMLTextAreaElement`, `HTMLButtonElement`, `HTMLInputElement` for the other core types rendered as an input, so
   `form.get('country').element` is typed. An expanded choice, or a type no core type tells about, stays a `FormField`.
-  The dumped shapes need `@silarhi/app-js` with a generic `FormField`.
+  The dumped shapes need `@silarhi/app-js` 0.8.0+.
 
 ## [0.3.1] - 2026-11-13
 
