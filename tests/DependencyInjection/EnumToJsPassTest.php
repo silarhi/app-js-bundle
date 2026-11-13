@@ -13,10 +13,13 @@ declare(strict_types=1);
 
 namespace Silarhi\AppJsBundle\Tests\DependencyInjection;
 
+use function dirname;
+
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\DependencyInjection\EnumToJsPass;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Kind;
+use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Placeholder;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Status;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\VatRate;
 use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\NotAnEnum;
@@ -36,6 +39,37 @@ final class EnumToJsPassTest extends TestCase
         (new EnumToJsPass())->process($container);
 
         self::assertSame(['Status' => Status::class, 'Vat' => VatRate::class], $container->getDefinition(EnumToJsPass::DUMPER)->getArgument('$enums'));
+    }
+
+    public function testScansTheConfiguredDirectories(): void
+    {
+        $container = $this->createContainer();
+        $container->setParameter('kernel.project_dir', dirname(__DIR__, 2));
+        $container->setParameter(EnumToJsPass::PATHS, [
+            '%kernel.project_dir%/tests/Fixtures/Enum' => 'Silarhi\\AppJsBundle\\Tests\\Fixtures\\Enum',
+            '%kernel.project_dir%/tests/missing' => 'App\\Missing',
+        ]);
+        // Found both ways: once
+        $container->register(Status::class, Status::class)->addTag(EnumToJsPass::TAG);
+
+        (new EnumToJsPass())->process($container);
+
+        self::assertSame([
+            'Kind' => Kind::class,
+            'Placeholder' => Placeholder::class,
+            'Status' => Status::class,
+            'Vat' => VatRate::class,
+        ], $container->getDefinition(EnumToJsPass::DUMPER)->getArgument('$enums'));
+    }
+
+    public function testIgnoresPathsThatAreNoList(): void
+    {
+        $container = $this->createContainer();
+        $container->setParameter(EnumToJsPass::PATHS, 'src/Enum');
+
+        (new EnumToJsPass())->process($container);
+
+        self::assertSame([], $container->getDefinition(EnumToJsPass::DUMPER)->getArgument('$enums'));
     }
 
     public function testDoesNothingWithoutTheDumper(): void

@@ -65,6 +65,13 @@ final class SilarhiAppJsBundle extends AbstractBundle
                             ->values(['ts', 'js'])
                             ->defaultValue('ts')
                         ->end()
+                        ->arrayNode('paths')
+                            ->info('Symfony 6.4 to 7.2 only: the directories scanned for #[EnumToJs] enums, with their namespace prefix. Symfony 7.3+ finds them through autoconfiguration.')
+                            ->example(['%kernel.project_dir%/src/Enum' => 'App\\Enum'])
+                            ->useAttributeAsKey('directory')
+                            ->normalizeKeys(false)
+                            ->scalarPrototype()->end()
+                        ->end()
                     ->end()
                 ->end()
                 ->arrayNode('forms')
@@ -88,7 +95,7 @@ final class SilarhiAppJsBundle extends AbstractBundle
     #[Override]
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        /** @var array{enums: array{output_dir: string, format: 'ts'|'js'}, forms: array{output_dir: string, format: 'ts'|'js'}} $config */
+        /** @var array{enums: array{output_dir: string, format: 'ts'|'js', paths: array<string, string>}, forms: array{output_dir: string, format: 'ts'|'js'}} $config */
         $services = $container->services();
         $formAvailable = interface_exists(FormFactoryInterface::class);
 
@@ -99,6 +106,7 @@ final class SilarhiAppJsBundle extends AbstractBundle
             $definition->addTag(EnumToJsPass::TAG, null === $attribute->name ? [] : ['name' => $attribute->name]);
         });
 
+        $builder->setParameter(EnumToJsPass::PATHS, $config['enums']['paths']);
         $services->set(EnumToJsPass::DUMPER, EnumDumper::class)
             ->arg('$enums', new AbstractArgument('set by EnumToJsPass'))
             ->arg('$format', Format::from($config['enums']['format']));

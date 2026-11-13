@@ -8,14 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- The enums marked `#[EnumToJs]` are found through autoconfiguration, wherever they live in the application's service
-  resources (the default `App\` resource loads `src/`), on every supported Symfony version.
-- An enum module is named after the enum (or `#[EnumToJs(name: ...)]`), at the root of `enums.output_dir`: two enums
-  with the same name fail the container build.
-
-### Removed
-
-- The `enums.paths` option: remove it from `config/packages/silarhi_app_js.yaml`.
+- On Symfony 7.3+, the enums marked `#[EnumToJs]` are found through autoconfiguration, wherever they live in the
+  application's service resources (the default `App\` resource loads `src/`).
+- `enums.paths` is empty by default and only needed on Symfony 6.4 to 7.2, which registers no enum in the container:
+  set it to `{'%kernel.project_dir%/src/Enum': 'App\Enum'}` there to keep the former default.
+- An enum module is named after the enum (or `#[EnumToJs(name: ...)]`), at the root of `enums.output_dir`. A class
+  marked `#[EnumToJs]` that is not an enum, or two enums with the same name, fail the container build.
 
 ## [0.2.0] - 2026-11-13
 

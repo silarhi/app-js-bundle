@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Silarhi\AppJsBundle\Tests\Fixtures;
 
+use Composer\InstalledVersions;
+
 use function dirname;
 
 use Silarhi\AppJsBundle\SilarhiAppJsBundle;
@@ -67,10 +69,15 @@ final class TestKernel extends Kernel
 
         // The "js" environment dumps JavaScript
         $format = 'js' === $this->environment ? 'js' : 'ts';
+        // Symfony 6.4 to 7.2 registers no enum in the container: they are scanned instead
+        $paths = version_compare((string) InstalledVersions::getVersion('symfony/dependency-injection'), '7.3', '>=')
+            ? []
+            : ['%kernel.project_dir%/tests/Fixtures/Enum' => 'Silarhi\\AppJsBundle\\Tests\\Fixtures\\Enum'];
         $container->extension('silarhi_app_js', [
             'enums' => [
                 'output_dir' => '%kernel.cache_dir%/app_js/enums',
                 'format' => $format,
+                'paths' => $paths,
             ],
             'forms' => [
                 'output_dir' => '%kernel.cache_dir%/app_js/forms',
