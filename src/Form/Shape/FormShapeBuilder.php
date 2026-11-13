@@ -15,6 +15,7 @@ namespace Silarhi\AppJsBundle\Form\Shape;
 
 use function in_array;
 use function is_array;
+use function is_string;
 
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
@@ -27,6 +28,28 @@ use Symfony\Component\Form\FormView;
  */
 final class FormShapeBuilder
 {
+    /**
+     * The element a field is rendered as, by the block prefix of a core form type. The most specific prefix wins: a
+     * textarea is a text too, an entity a choice.
+     */
+    private const ELEMENTS = [
+        'button' => 'HTMLButtonElement',
+        'checkbox' => 'HTMLInputElement',
+        'choice' => 'HTMLSelectElement',
+        'date' => 'HTMLInputElement',
+        'datetime' => 'HTMLInputElement',
+        'file' => 'HTMLInputElement',
+        'hidden' => 'HTMLInputElement',
+        'integer' => 'HTMLInputElement',
+        'money' => 'HTMLInputElement',
+        'number' => 'HTMLInputElement',
+        'percent' => 'HTMLInputElement',
+        'text' => 'HTMLInputElement',
+        'textarea' => 'HTMLTextAreaElement',
+        'time' => 'HTMLInputElement',
+        'week' => 'HTMLInputElement',
+    ];
+
     /**
      * @param FormInterface<mixed>|null $form the form of the view
      */
@@ -41,8 +64,13 @@ final class FormShapeBuilder
 
         // An expanded choice is compound (one child per option), but formView() reads it as one field
         $expandedChoice = in_array('choice', $prefixes, true) && true === ($view->vars['expanded'] ?? false);
-        if (true !== ($view->vars['compound'] ?? false) || $expandedChoice) {
+        if ($expandedChoice) {
+            // Its element is the container of the options
             return ShapeNode::field();
+        }
+
+        if (true !== ($view->vars['compound'] ?? false)) {
+            return ShapeNode::field($this->getElement($prefixes));
         }
 
         $children = [];
@@ -73,6 +101,22 @@ final class FormShapeBuilder
         }
 
         return $item;
+    }
+
+    /**
+     * @param array<mixed> $prefixes the block prefixes of a field, from the form type to the field itself
+     *
+     * @return string|null the DOM class it is rendered as, null when no core type among its prefixes tells
+     */
+    private function getElement(array $prefixes): ?string
+    {
+        foreach (array_reverse($prefixes) as $prefix) {
+            if (is_string($prefix) && isset(self::ELEMENTS[$prefix])) {
+                return self::ELEMENTS[$prefix];
+            }
+        }
+
+        return null;
     }
 
     /**

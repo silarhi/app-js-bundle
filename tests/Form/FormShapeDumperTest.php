@@ -19,6 +19,7 @@ use Silarhi\AppJsBundle\Form\FormShapeDumper;
 use Silarhi\AppJsBundle\Form\Variant\FormVariant;
 use Silarhi\AppJsBundle\Form\Variant\StaticFormVariantProvider;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ButtonsType;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ElementsType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\InvokableListener;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ListenersType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\RenderedItemsType;
@@ -60,9 +61,34 @@ final class FormShapeDumperTest extends TestCase
 
         self::assertSame([], $dump->warnings);
         self::assertStringContainsString(
-            "    name: FormField\n    actions: FormCollection<{\n        label: FormField\n        remove: FormField\n    }>\n    preview: FormField\n    generate: FormField\n",
+            "    name: FormField<HTMLInputElement>\n    actions: FormCollection<{\n        label: FormField<HTMLInputElement>\n        remove: FormField<HTMLButtonElement>\n    }>\n    preview: FormField<HTMLButtonElement>\n    generate: FormField<HTMLButtonElement>\n",
             $dump->files['ButtonsForm.ts'],
         );
+    }
+
+    public function testTypesTheElementOfEachField(): void
+    {
+        $dump = $this->createDumper([ElementsType::class => ['name' => 'ElementsForm', 'dynamic' => true]])->dump();
+
+        self::assertStringContainsString(<<<'TS'
+            export interface ElementsForm {
+                title: FormField<HTMLInputElement>
+                body: FormField<HTMLTextAreaElement>
+                kind: FormField<HTMLSelectElement>
+                roles: FormField<HTMLSelectElement>
+                size: FormField
+                agree: FormField<HTMLInputElement>
+                amount: FormField<HTMLInputElement>
+                startsAt: FormField<HTMLInputElement>
+                birthday: {
+                    year: FormField<HTMLSelectElement>
+                    month: FormField<HTMLSelectElement>
+                    day: FormField<HTMLSelectElement>
+                }
+                code: FormField
+                save: FormField<HTMLButtonElement>
+            }
+            TS, $dump->files['ElementsForm.ts']);
     }
 
     public function testReadsTheItemShapeFromTheRenderedItems(): void
@@ -73,7 +99,7 @@ final class FormShapeDumperTest extends TestCase
         );
 
         self::assertStringContainsString(
-            "    phones: FormCollection<{\n        number: FormField\n        fax?: FormField\n    }>\n",
+            "    phones: FormCollection<{\n        number: FormField<HTMLInputElement>\n        fax?: FormField<HTMLInputElement>\n    }>\n",
             $dumper->dump()->files['RenderedItemsForm.ts'],
         );
     }

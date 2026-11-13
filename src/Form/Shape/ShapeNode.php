@@ -29,6 +29,7 @@ final readonly class ShapeNode
      * @param array<string, true>      $optional the children not always rendered
      * @param ShapeNode|null           $item     the shape of the items of a collection, null when unknown
      * @param class-string|null        $formType the form type that built a form, null when unknown or when builds disagree
+     * @param string|null              $element  the DOM class a field is rendered as (HTMLSelectElement), null when unknown or when builds disagree
      */
     private function __construct(
         public ShapeKind $kind,
@@ -36,12 +37,13 @@ final readonly class ShapeNode
         public array $optional = [],
         public ?self $item = null,
         public ?string $formType = null,
+        public ?string $element = null,
     ) {
     }
 
-    public static function field(): self
+    public static function field(?string $element = null): self
     {
-        return new self(ShapeKind::Field);
+        return new self(ShapeKind::Field, element: $element);
     }
 
     /**
@@ -63,11 +65,15 @@ final readonly class ShapeNode
         return isset($this->optional[$name]);
     }
 
-    /** The same fields, the same optional ones, in any order: the form types that built them do not matter. */
+    /** The same fields, rendered as the same elements, the same optional ones, in any order: the form types that built them do not matter. */
     public function equals(self $other): bool
     {
         if ($this->kind !== $other->kind) {
             return false;
+        }
+
+        if (ShapeKind::Field === $this->kind) {
+            return $this->element === $other->element;
         }
 
         if (ShapeKind::Collection === $this->kind) {
@@ -105,7 +111,7 @@ final readonly class ShapeNode
         }
 
         return match ($this->kind) {
-            ShapeKind::Field => $this,
+            ShapeKind::Field => $this->element === $other->element ? $this : self::field(),
             ShapeKind::Collection => self::collection(match (true) {
                 !$this->item instanceof self => $other->item,
                 !$other->item instanceof self => $this->item,
