@@ -68,7 +68,7 @@ final readonly class FormShapeDumper
 
     public function dump(): FormShapeDump
     {
-        $files = [];
+        $shapes = [];
         $warnings = [];
         foreach ($this->forms as $formType => ['name' => $name, 'dynamic' => $dynamic]) {
             $shape = null;
@@ -76,7 +76,7 @@ final readonly class FormShapeDumper
             $listeners = [];
             foreach ($this->getVariants($formType) as $variantName => $variant) {
                 $form = $this->createForm($formType, (string) $variantName, $variant);
-                $node = $this->shapeBuilder->build($form->createView());
+                $node = $this->shapeBuilder->build($form->createView(), $form);
                 $shape = $shape instanceof ShapeNode ? $this->mergeShape($shape, $node, $formType) : $node;
                 $hasData = $hasData || null !== $variant->data;
                 $listeners += $this->findDataListeners($form, '');
@@ -94,7 +94,13 @@ final readonly class FormShapeDumper
                 );
             }
 
-            $files[$name . '.' . $this->getExtension()] = $this->shapeRenderer->render($name, $formType, $shape);
+            $shapes[$formType] = ['name' => $name, 'shape' => $shape];
+        }
+
+        // Once every shape is known: an embedded form type that is dumped too becomes a reference to its interface
+        $files = [];
+        foreach ($shapes as $formType => ['name' => $name, 'shape' => $shape]) {
+            $files[$name . '.' . $this->getExtension()] = $this->shapeRenderer->render($name, $formType, $shape, $shapes);
         }
 
         ksort($files);

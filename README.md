@@ -36,7 +36,6 @@
 
 ## Features
 
-
 - `load_page()`, the Twig function behind the `data-page` listener;
 - `app-js:dump-enums`, the PHP enums marked `#[EnumToJs]` as TypeScript or JavaScript modules;
 - `app-js:dump-forms`, the shape of the form types marked `#[FormToJs]`, for `formView<Shape>()` to check form paths
@@ -144,6 +143,23 @@ form.get('adress.city') // TS2345
 
 The shape is read from the form view, as `formView()` reads the DOM: embedded forms are nested objects, collections
 take the shape of their prototype and rendered items, expanded choices are one field. The CSRF token is left out.
+
+An embedded form whose type is marked `#[FormToJs]` too is a reference to its interface, imported from its file:
+
+```ts
+import type { FormCollection, FormField } from '@silarhi/app-js/form'
+import type { AddressForm } from './AddressForm'
+import type { PhoneForm } from './PhoneForm'
+
+export interface PartyForm {
+    name: FormField
+    address: AddressForm
+    phones: FormCollection<PhoneForm>
+}
+```
+
+Only when the shapes are the same: an embedded form built with options that change its fields
+(`->add('billingAddress', AddressType::class, ['with_country' => true])`) keeps its own shape, written out.
 
 ### Fields that are not always rendered
 

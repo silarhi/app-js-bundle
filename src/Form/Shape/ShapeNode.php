@@ -28,12 +28,14 @@ final readonly class ShapeNode
      * @param array<string, ShapeNode> $children the fields of a form, in rendering order
      * @param array<string, true>      $optional the children not always rendered
      * @param ShapeNode|null           $item     the shape of the items of a collection, null when unknown
+     * @param class-string|null        $formType the form type that built a form, null when unknown or when builds disagree
      */
     private function __construct(
         public ShapeKind $kind,
         public array $children = [],
         public array $optional = [],
         public ?self $item = null,
+        public ?string $formType = null,
     ) {
     }
 
@@ -44,10 +46,11 @@ final readonly class ShapeNode
 
     /**
      * @param array<string, ShapeNode> $children
+     * @param class-string|null        $formType
      */
-    public static function form(array $children): self
+    public static function form(array $children, ?string $formType = null): self
     {
-        return new self(ShapeKind::Form, $children);
+        return new self(ShapeKind::Form, $children, formType: $formType);
     }
 
     public static function collection(?self $item): self
@@ -58,6 +61,36 @@ final readonly class ShapeNode
     public function isOptional(string $name): bool
     {
         return isset($this->optional[$name]);
+    }
+
+    /** The same fields, the same optional ones, in any order: the form types that built them do not matter. */
+    public function equals(self $other): bool
+    {
+        if ($this->kind !== $other->kind) {
+            return false;
+        }
+
+        if (ShapeKind::Collection === $this->kind) {
+            return $this->item instanceof self && $other->item instanceof self
+                ? $this->item->equals($other->item)
+                : $this->item === $other->item;
+        }
+
+        if ([] !== array_diff_key($this->children, $other->children) || [] !== array_diff_key($other->children, $this->children)) {
+            return false;
+        }
+
+        if ([] !== array_diff_key($this->optional, $other->optional) || [] !== array_diff_key($other->optional, $this->optional)) {
+            return false;
+        }
+
+        foreach ($this->children as $name => $child) {
+            if (!$child->equals($other->children[$name])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -98,6 +131,6 @@ final readonly class ShapeNode
             }
         }
 
-        return new self(ShapeKind::Form, $children, $optional);
+        return new self(ShapeKind::Form, $children, $optional, formType: $this->formType === $other->formType ? $this->formType : null);
     }
 }
