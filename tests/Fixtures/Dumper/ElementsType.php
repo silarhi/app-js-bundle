@@ -20,13 +20,14 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
+use Symfony\Component\Form\Extension\Core\Type\RadioType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 
 /**
- * One field per element a core type renders.
+ * One field per element and value a core type renders.
  *
  * @extends AbstractType<mixed>
  */
@@ -41,7 +42,9 @@ final class ElementsType extends AbstractType
             ->add('roles', ChoiceType::class, ['choices' => ['A' => 'a'], 'multiple' => true])
             // The container of its options
             ->add('size', ChoiceType::class, ['choices' => ['S' => 's'], 'expanded' => true])
+            ->add('tags', ChoiceType::class, ['choices' => ['A' => 'a'], 'expanded' => true, 'multiple' => true])
             ->add('agree', CheckboxType::class)
+            ->add('yes', RadioType::class)
             ->add('amount', MoneyType::class)
             ->add('startsAt', DateTimeType::class, ['widget' => 'single_text'])
             // Compound: an embedded form of three selects

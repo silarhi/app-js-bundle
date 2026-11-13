@@ -51,25 +51,25 @@ final class BundleTest extends KernelTestCase
             import type { PhoneForm } from './PhoneForm'
 
             export interface UserForm {
-                name: FormField<HTMLInputElement>
-                size: FormField
-                tags: FormField
+                name: FormField<HTMLInputElement, string>
+                size: FormField<HTMLElement, string>
+                tags: FormField<HTMLElement, string[]>
                 address: AddressForm
                 billingAddress: {
-                    street: FormField<HTMLInputElement>
-                    city: FormField<HTMLInputElement>
-                    country: FormField<HTMLInputElement>
+                    street: FormField<HTMLInputElement, string>
+                    city: FormField<HTMLInputElement, string>
+                    country: FormField<HTMLInputElement, string>
                 }
                 phones: FormCollection<PhoneForm>
-                notes: FormCollection<FormField<HTMLInputElement>>
+                notes: FormCollection<FormField<HTMLInputElement, string>>
                 emails: FormCollection<AnyShape>
-                'start-date': FormField<HTMLInputElement>
-                siren?: FormField<HTMLInputElement>
+                'start-date': FormField<HTMLInputElement, string>
+                siren?: FormField<HTMLInputElement, string>
             }
 
             TS, file_get_contents($directory . '/UserForm.ts'));
 
-        self::assertStringContainsString("export interface Lease {\n    reference: FormField<HTMLInputElement>\n    inventory?: FormField<HTMLInputElement>\n}\n", (string) file_get_contents($directory . '/Lease.ts'));
+        self::assertStringContainsString("export interface Lease {\n    reference: FormField<HTMLInputElement, string>\n    inventory?: FormField<HTMLInputElement, string>\n}\n", (string) file_get_contents($directory . '/Lease.ts'));
         self::assertFileExists($directory . '/ContactForm.ts');
     }
 

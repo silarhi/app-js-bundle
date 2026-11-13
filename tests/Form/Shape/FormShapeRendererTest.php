@@ -43,6 +43,16 @@ final class FormShapeRendererTest extends TestCase
         self::assertStringContainsString("    kind: FormField<HTMLSelectElement>\n    other: FormField\n", $ts);
     }
 
+    public function testNamesTheValueOfAField(): void
+    {
+        $ts = (new FormShapeRenderer())->render('TagsForm', 'App\\Form\\TagsType', ShapeNode::form([
+            'roles' => ShapeNode::field('HTMLSelectElement', 'string[]'),
+            'tags' => ShapeNode::field(value: 'string[]'),
+        ]));
+
+        self::assertStringContainsString("    roles: FormField<HTMLSelectElement, string[]>\n    tags: FormField<HTMLElement, string[]>\n", $ts);
+    }
+
     public function testReferencesTheDumpedFormsOfTheSameShape(): void
     {
         $category = ShapeNode::form([

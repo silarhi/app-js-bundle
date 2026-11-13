@@ -25,10 +25,10 @@ use function sprintf;
  *     import type { AddressForm } from './AddressForm'
  *
  *     export interface LandlordForm {
- *         name: FormField<HTMLInputElement>
+ *         name: FormField<HTMLInputElement, string>
  *         address: AddressForm
  *         banks: FormCollection<{
- *             iban: FormField<HTMLInputElement>
+ *             iban: FormField<HTMLInputElement, string>
  *         }>
  *         webSiteModule?: FormField
  *     }
@@ -86,7 +86,11 @@ final class FormShapeRenderer
         if (ShapeKind::Field === $node->kind) {
             $imports['FormField'] = true;
 
-            return null === $node->element ? 'FormField' : sprintf('FormField<%s>', $node->element);
+            return match (true) {
+                null !== $node->value => sprintf('FormField<%s, %s>', $node->element ?? 'HTMLElement', $node->value),
+                null !== $node->element => sprintf('FormField<%s>', $node->element),
+                default => 'FormField',
+            };
         }
 
         if (ShapeKind::Collection === $node->kind) {
