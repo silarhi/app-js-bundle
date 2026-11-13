@@ -15,6 +15,10 @@ namespace Silarhi\AppJsBundle\Form\Variant;
 
 /**
  * One way of building a form for app-js:dump-forms: its options, and the data it is built with.
+ *
+ * Without data, the form is built with its empty data, as Symfony computes it for a form submitted empty (a new
+ * instance of its data_class by default, or its own empty_data), when that is an object: give data only when an empty
+ * entity does not render the fields.
  */
 final readonly class FormVariant
 {

@@ -4,6 +4,17 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] - Unreleased
+
+### Added
+
+- `app-js:dump-forms` builds a form type without data (no variant, or a variant that gives none) with its empty data, as
+  Symfony computes it for a form submitted empty: a new instance of its `data_class` by default, or what its own
+  `empty_data` gives, when that is an object. It is computed from the resolved options, so `buildForm()` and the
+  `PRE_SET_DATA` listeners never run without data. A type that reads `$options['data']`, or whose listeners add fields,
+  needs no variant provider for an empty entity, and no longer gets the warning about its listeners. An `empty_data`
+  that fails keeps the build without data, named with `-v`.
+
 ## [0.5.0] - 2026-11-13
 
 ### Added
@@ -60,6 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.6.0]: https://github.com/silarhi/app-js-bundle/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/silarhi/app-js-bundle/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/silarhi/app-js-bundle/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/silarhi/app-js-bundle/compare/v0.3.0...v0.3.1
