@@ -31,6 +31,7 @@ use Silarhi\AppJsBundle\Writer\Format;
 
 use function sprintf;
 
+use Symfony\Component\Form\Button;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
@@ -157,7 +158,8 @@ final readonly class FormShapeDumper
     }
 
     /**
-     * The PRE_SET_DATA listeners of the application (Symfony's own add no field) in a form and its children.
+     * The PRE_SET_DATA listeners of the application (Symfony's own add no field) in a form and its children. A button
+     * has no listener: it supports no event dispatching.
      *
      * @param FormInterface<mixed> $form
      *
@@ -165,6 +167,10 @@ final readonly class FormShapeDumper
      */
     private function findDataListeners(FormInterface $form, string $path): array
     {
+        if ($form instanceof Button) {
+            return [];
+        }
+
         $listeners = [];
         foreach ($form->getConfig()->getEventDispatcher()->getListeners(FormEvents::PRE_SET_DATA) as $listener) {
             $class = $this->getListenerClass($listener);
