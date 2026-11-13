@@ -18,6 +18,10 @@ return RectorConfig::configure()
         'src',
         'tests',
     ])
+    // Their listeners are callables of every kind on purpose: no first-class callable conversion, no dead code removal
+    ->withSkip([
+        __DIR__ . '/tests/Fixtures/Dumper',
+    ])
     ->withPhpSets(php82: true)
     ->withPreparedSets(
         deadCode: true,

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Silarhi\AppJsBundle\Tests\Fixtures\Form;
 
+use Silarhi\AppJsBundle\Attribute\FormToJs;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -20,6 +21,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 /**
  * @extends AbstractType<mixed>
  */
+#[FormToJs]
 final class PhoneType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void

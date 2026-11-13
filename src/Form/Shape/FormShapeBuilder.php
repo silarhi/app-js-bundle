@@ -16,22 +16,27 @@ namespace Silarhi\AppJsBundle\Form\Shape;
 use function in_array;
 use function is_array;
 
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 
 /**
- * The shape of a rendered form, read from its view as formView() of @silarhi/app-js reads the DOM.
+ * The shape of a rendered form, read from its view as formView() of @silarhi/app-js reads the DOM. The form, when
+ * given, tells which form type built each embedded form.
  *
  * @internal
  */
 final class FormShapeBuilder
 {
-    public function build(FormView $view): ShapeNode
+    /**
+     * @param FormInterface<mixed>|null $form the form of the view
+     */
+    public function build(FormView $view, ?FormInterface $form = null): ShapeNode
     {
         $prefixes = $view->vars['block_prefixes'] ?? [];
         $prefixes = is_array($prefixes) ? $prefixes : [];
 
         if (in_array('collection', $prefixes, true)) {
-            return ShapeNode::collection($this->buildItem($view));
+            return ShapeNode::collection($this->buildItem($view, $form));
         }
 
         // An expanded choice is compound (one child per option), but formView() reads it as one field
@@ -42,26 +47,41 @@ final class FormShapeBuilder
 
         $children = [];
         foreach ($view->children as $name => $child) {
-            $children[(string) $name] = $this->build($child);
+            $children[(string) $name] = $this->build($child, $this->getChild($form, (string) $name));
         }
 
-        return ShapeNode::form($children);
+        return ShapeNode::form($children, $form instanceof FormInterface ? $form->getConfig()->getType()->getInnerType()::class : null);
     }
 
-    /** The item shape of a collection: its prototype and the items it rendered, merged. */
-    private function buildItem(FormView $collection): ?ShapeNode
+    /**
+     * The item shape of a collection: its prototype and the items it rendered, merged.
+     *
+     * @param FormInterface<mixed>|null $collection
+     */
+    private function buildItem(FormView $collectionView, ?FormInterface $collection): ?ShapeNode
     {
         $item = null;
-        $prototype = $collection->vars['prototype'] ?? null;
+        $prototype = $collectionView->vars['prototype'] ?? null;
         if ($prototype instanceof FormView) {
-            $item = $this->build($prototype);
+            $prototypeForm = $collection?->getConfig()->getAttribute('prototype');
+            $item = $this->build($prototype, $prototypeForm instanceof FormInterface ? $prototypeForm : null);
         }
 
-        foreach ($collection->children as $child) {
-            $node = $this->build($child);
+        foreach ($collectionView->children as $name => $child) {
+            $node = $this->build($child, $this->getChild($collection, (string) $name));
             $item = $item?->merge($node) ?? $node;
         }
 
         return $item;
+    }
+
+    /**
+     * @param FormInterface<mixed>|null $form
+     *
+     * @return FormInterface<mixed>|null the child named $name, null without a form or such a child
+     */
+    private function getChild(?FormInterface $form, string $name): ?FormInterface
+    {
+        return $form instanceof FormInterface && $form->has($name) ? $form->get($name) : null;
     }
 }

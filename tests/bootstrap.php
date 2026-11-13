@@ -12,7 +12,11 @@ declare(strict_types=1);
  */
 
 use Symfony\Component\ErrorHandler\ErrorHandler;
+use Symfony\Component\Filesystem\Filesystem;
 
 require __DIR__ . '/../vendor/autoload.php';
+
+// A container compiled by a previous run skips the bundle's extension and compiler pass: build it again
+(new Filesystem())->remove(__DIR__ . '/../var/cache');
 
 ErrorHandler::register(null, false);

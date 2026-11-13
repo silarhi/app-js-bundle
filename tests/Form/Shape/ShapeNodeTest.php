@@ -16,6 +16,9 @@ namespace Silarhi\AppJsBundle\Tests\Form\Shape;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\Form\Shape\ShapeNode;
+use Silarhi\AppJsBundle\Tests\Fixtures\Form\AddressType;
+use Silarhi\AppJsBundle\Tests\Fixtures\Form\PhoneType;
+use Silarhi\AppJsBundle\Tests\Fixtures\Form\UserType;
 
 final class ShapeNodeTest extends TestCase
 {
@@ -46,6 +49,26 @@ final class ShapeNodeTest extends TestCase
         self::assertNotNull($merged->item);
         self::assertTrue($merged->item->isOptional('type'));
         self::assertFalse($merged->item->isOptional('number'));
+    }
+
+    public function testComparesFieldsInAnyOrder(): void
+    {
+        $shape = ShapeNode::form(['a' => ShapeNode::field(), 'b' => ShapeNode::collection(ShapeNode::form([]))], UserType::class);
+
+        self::assertTrue($shape->equals(ShapeNode::form(['b' => ShapeNode::collection(ShapeNode::form([])), 'a' => ShapeNode::field()], PhoneType::class)));
+        self::assertFalse($shape->equals(ShapeNode::form(['a' => ShapeNode::field()])));
+        self::assertFalse($shape->equals(ShapeNode::form(['a' => ShapeNode::field(), 'b' => ShapeNode::collection(null)])));
+        self::assertFalse($shape->equals(ShapeNode::field()));
+        self::assertFalse($shape->equals($shape->merge(ShapeNode::form(['a' => ShapeNode::field()]))));
+        self::assertTrue(ShapeNode::collection(null)->equals(ShapeNode::collection(null)));
+    }
+
+    public function testKeepsTheFormTypeTheBuildsAgreeOn(): void
+    {
+        $merged = ShapeNode::form([], AddressType::class)->merge(ShapeNode::form([], AddressType::class));
+
+        self::assertSame(AddressType::class, $merged->formType);
+        self::assertNull($merged->merge(ShapeNode::form([], PhoneType::class))->formType);
     }
 
     public function testRefusesNodesOfDifferentKinds(): void
