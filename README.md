@@ -125,14 +125,15 @@ writes `assets/js/forms/PartyForm.ts`:
 import type { FormCollection, FormField } from '@silarhi/app-js/form'
 
 export interface PartyForm {
-    name: FormField<HTMLInputElement>
-    country: FormField<HTMLSelectElement>
+    name: FormField<HTMLInputElement, string>
+    country: FormField<HTMLSelectElement, string | null>
+    tags: FormField<HTMLElement, string[]>
     address: {
-        street: FormField<HTMLInputElement>
-        city: FormField<HTMLInputElement>
+        street: FormField<HTMLInputElement, string>
+        city: FormField<HTMLInputElement, string>
     }
     phones: FormCollection<{
-        number: FormField<HTMLInputElement>
+        number: FormField<HTMLInputElement, string>
     }>
 }
 ```
@@ -146,16 +147,22 @@ const form = formView<PartyForm>(container.querySelector('form'))
 form.get('phones.0.number')
 form.get('adress.city') // TS2345
 form.get('country').element // HTMLSelectElement | null
+form.field('tags').value // string[]
 ```
 
 The shape is read from the form view, as `formView()` reads the DOM: embedded forms are nested objects, collections
 take the shape of their prototype and rendered items, expanded choices are one field. The CSRF token is left out.
 
-A field names the element it is rendered as, from the core type it extends: `HTMLSelectElement` for a choice (an
-entity, an enum, a country), `HTMLTextAreaElement`, `HTMLButtonElement`, `HTMLInputElement` for the other core types
-rendered as an input. An expanded choice (the container of its options), a type no core type tells about, or a field
-rendered as different elements by two variants is a plain `FormField`, an `HTMLElement`. A form type of your own whose
-widget renders something else than its parent should extend a type that renders the same element.
+A field names the element it is rendered as and the value `field().value` reads, from the core type it extends:
+
+1. a choice (an entity, an enum, a country) is an `HTMLSelectElement` read as `string | null`, or `string[]` when
+   multiple; expanded, the container of its options read as `string`, or `string[]` when multiple;
+2. a checkbox is read as a `boolean`, a radio as `string | undefined` (the checked value of its group);
+3. a textarea and the other core types rendered as an input are read as a `string`; a button has no value.
+
+A type no core type tells about, or a field two variants render differently, is a plain `FormField`: an `HTMLElement`
+read as any value. A form type of your own whose widget renders something else than its parent, or a field whose
+behavior (`bindField()`) reads another value, should extend a type that renders and reads the same.
 
 An embedded form whose type is marked `#[FormToJs]` too is a reference to its interface, imported from its file:
 

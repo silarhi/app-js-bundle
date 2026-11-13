@@ -61,29 +61,31 @@ final class FormShapeDumperTest extends TestCase
 
         self::assertSame([], $dump->warnings);
         self::assertStringContainsString(
-            "    name: FormField<HTMLInputElement>\n    actions: FormCollection<{\n        label: FormField<HTMLInputElement>\n        remove: FormField<HTMLButtonElement>\n    }>\n    preview: FormField<HTMLButtonElement>\n    generate: FormField<HTMLButtonElement>\n",
+            "    name: FormField<HTMLInputElement, string>\n    actions: FormCollection<{\n        label: FormField<HTMLInputElement, string>\n        remove: FormField<HTMLButtonElement>\n    }>\n    preview: FormField<HTMLButtonElement>\n    generate: FormField<HTMLButtonElement>\n",
             $dump->files['ButtonsForm.ts'],
         );
     }
 
-    public function testTypesTheElementOfEachField(): void
+    public function testTypesTheElementAndTheValueOfEachField(): void
     {
         $dump = $this->createDumper([ElementsType::class => ['name' => 'ElementsForm', 'dynamic' => true]])->dump();
 
         self::assertStringContainsString(<<<'TS'
             export interface ElementsForm {
-                title: FormField<HTMLInputElement>
-                body: FormField<HTMLTextAreaElement>
-                kind: FormField<HTMLSelectElement>
-                roles: FormField<HTMLSelectElement>
-                size: FormField
-                agree: FormField<HTMLInputElement>
-                amount: FormField<HTMLInputElement>
-                startsAt: FormField<HTMLInputElement>
+                title: FormField<HTMLInputElement, string>
+                body: FormField<HTMLTextAreaElement, string>
+                kind: FormField<HTMLSelectElement, string | null>
+                roles: FormField<HTMLSelectElement, string[]>
+                size: FormField<HTMLElement, string>
+                tags: FormField<HTMLElement, string[]>
+                agree: FormField<HTMLInputElement, boolean>
+                yes: FormField<HTMLInputElement, string | undefined>
+                amount: FormField<HTMLInputElement, string>
+                startsAt: FormField<HTMLInputElement, string>
                 birthday: {
-                    year: FormField<HTMLSelectElement>
-                    month: FormField<HTMLSelectElement>
-                    day: FormField<HTMLSelectElement>
+                    year: FormField<HTMLSelectElement, string | null>
+                    month: FormField<HTMLSelectElement, string | null>
+                    day: FormField<HTMLSelectElement, string | null>
                 }
                 code: FormField
                 save: FormField<HTMLButtonElement>
@@ -99,7 +101,7 @@ final class FormShapeDumperTest extends TestCase
         );
 
         self::assertStringContainsString(
-            "    phones: FormCollection<{\n        number: FormField<HTMLInputElement>\n        fax?: FormField<HTMLInputElement>\n    }>\n",
+            "    phones: FormCollection<{\n        number: FormField<HTMLInputElement, string>\n        fax?: FormField<HTMLInputElement, string>\n    }>\n",
             $dumper->dump()->files['RenderedItemsForm.ts'],
         );
     }

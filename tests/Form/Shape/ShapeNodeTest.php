@@ -62,6 +62,15 @@ final class ShapeNodeTest extends TestCase
         self::assertFalse($select->equals(ShapeNode::field()));
     }
 
+    public function testAFieldReadAsTwoValuesHasNone(): void
+    {
+        $tags = ShapeNode::field(value: 'string[]');
+
+        self::assertSame('string[]', $tags->merge(ShapeNode::field(value: 'string[]'))->value);
+        self::assertNull($tags->merge(ShapeNode::field(value: 'string'))->value);
+        self::assertFalse($tags->equals(ShapeNode::field()));
+    }
+
     public function testComparesFieldsInAnyOrder(): void
     {
         $shape = ShapeNode::form(['a' => ShapeNode::field(), 'b' => ShapeNode::collection(ShapeNode::form([]))], UserType::class);

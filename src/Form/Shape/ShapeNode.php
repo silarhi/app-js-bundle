@@ -30,6 +30,7 @@ final readonly class ShapeNode
      * @param ShapeNode|null           $item     the shape of the items of a collection, null when unknown
      * @param class-string|null        $formType the form type that built a form, null when unknown or when builds disagree
      * @param string|null              $element  the DOM class a field is rendered as (HTMLSelectElement), null when unknown or when builds disagree
+     * @param string|null              $value    the TypeScript type a field is read as (string[]), null when unknown or when builds disagree
      */
     private function __construct(
         public ShapeKind $kind,
@@ -38,12 +39,13 @@ final readonly class ShapeNode
         public ?self $item = null,
         public ?string $formType = null,
         public ?string $element = null,
+        public ?string $value = null,
     ) {
     }
 
-    public static function field(?string $element = null): self
+    public static function field(?string $element = null, ?string $value = null): self
     {
-        return new self(ShapeKind::Field, element: $element);
+        return new self(ShapeKind::Field, element: $element, value: $value);
     }
 
     /**
@@ -65,7 +67,7 @@ final readonly class ShapeNode
         return isset($this->optional[$name]);
     }
 
-    /** The same fields, rendered as the same elements, the same optional ones, in any order: the form types that built them do not matter. */
+    /** The same fields, rendered as the same elements and read as the same values, the same optional ones, in any order: the form types that built them do not matter. */
     public function equals(self $other): bool
     {
         if ($this->kind !== $other->kind) {
@@ -73,7 +75,7 @@ final readonly class ShapeNode
         }
 
         if (ShapeKind::Field === $this->kind) {
-            return $this->element === $other->element;
+            return $this->element === $other->element && $this->value === $other->value;
         }
 
         if (ShapeKind::Collection === $this->kind) {
@@ -111,7 +113,10 @@ final readonly class ShapeNode
         }
 
         return match ($this->kind) {
-            ShapeKind::Field => $this->element === $other->element ? $this : self::field(),
+            ShapeKind::Field => self::field(
+                $this->element === $other->element ? $this->element : null,
+                $this->value === $other->value ? $this->value : null,
+            ),
             ShapeKind::Collection => self::collection(match (true) {
                 !$this->item instanceof self => $other->item,
                 !$other->item instanceof self => $this->item,

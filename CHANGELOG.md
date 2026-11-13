@@ -4,6 +4,15 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - Unreleased
+
+### Added
+
+- `app-js:dump-forms` names the value each field is read as: `FormField<HTMLSelectElement, string[]>` for a multiple
+  choice, `string | null` for a single one, `string` or `string[]` for an expanded one, `boolean` for a checkbox,
+  `string` for the other core types rendered as an input, so `form.field('tags').value` and the `FormDefinition`
+  conditions are typed. The dumped shapes need `@silarhi/app-js` 0.9.0+.
+
 ## [0.4.0] - 2026-11-13
 
 ### Added
@@ -51,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.5.0]: https://github.com/silarhi/app-js-bundle/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/silarhi/app-js-bundle/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/silarhi/app-js-bundle/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/silarhi/app-js-bundle/compare/v0.2.0...v0.3.0

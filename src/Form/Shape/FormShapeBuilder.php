@@ -29,25 +29,28 @@ use Symfony\Component\Form\FormView;
 final class FormShapeBuilder
 {
     /**
-     * The element a field is rendered as, by the block prefix of a core form type. The most specific prefix wins: a
-     * textarea is a text too, an entity a choice.
+     * The element a field is rendered as and the value formView() reads from it, by the block prefix of a core form
+     * type. The most specific prefix wins: a textarea is a text too, an entity a choice, a radio a checkbox.
      */
-    private const ELEMENTS = [
-        'button' => 'HTMLButtonElement',
-        'checkbox' => 'HTMLInputElement',
-        'choice' => 'HTMLSelectElement',
-        'date' => 'HTMLInputElement',
-        'datetime' => 'HTMLInputElement',
-        'file' => 'HTMLInputElement',
-        'hidden' => 'HTMLInputElement',
-        'integer' => 'HTMLInputElement',
-        'money' => 'HTMLInputElement',
-        'number' => 'HTMLInputElement',
-        'percent' => 'HTMLInputElement',
-        'text' => 'HTMLInputElement',
-        'textarea' => 'HTMLTextAreaElement',
-        'time' => 'HTMLInputElement',
-        'week' => 'HTMLInputElement',
+    private const FIELDS = [
+        'button' => ['HTMLButtonElement', null],
+        'checkbox' => ['HTMLInputElement', 'boolean'],
+        // A single or a multiple select: see getField()
+        'choice' => ['HTMLSelectElement', null],
+        'date' => ['HTMLInputElement', 'string'],
+        'datetime' => ['HTMLInputElement', 'string'],
+        'file' => ['HTMLInputElement', 'string'],
+        'hidden' => ['HTMLInputElement', 'string'],
+        'integer' => ['HTMLInputElement', 'string'],
+        'money' => ['HTMLInputElement', 'string'],
+        'number' => ['HTMLInputElement', 'string'],
+        'percent' => ['HTMLInputElement', 'string'],
+        // The checked value of its group, if any
+        'radio' => ['HTMLInputElement', 'string | undefined'],
+        'text' => ['HTMLInputElement', 'string'],
+        'textarea' => ['HTMLTextAreaElement', 'string'],
+        'time' => ['HTMLInputElement', 'string'],
+        'week' => ['HTMLInputElement', 'string'],
     ];
 
     /**
@@ -65,12 +68,12 @@ final class FormShapeBuilder
         // An expanded choice is compound (one child per option), but formView() reads it as one field
         $expandedChoice = in_array('choice', $prefixes, true) && true === ($view->vars['expanded'] ?? false);
         if ($expandedChoice) {
-            // Its element is the container of the options
-            return ShapeNode::field();
+            // Its element is the container of the options, its value the ones checked
+            return ShapeNode::field(value: $this->isMultiple($view) ? 'string[]' : 'string');
         }
 
         if (true !== ($view->vars['compound'] ?? false)) {
-            return ShapeNode::field($this->getElement($prefixes));
+            return $this->getField($view, $prefixes);
         }
 
         $children = [];
@@ -106,17 +109,30 @@ final class FormShapeBuilder
     /**
      * @param array<mixed> $prefixes the block prefixes of a field, from the form type to the field itself
      *
-     * @return string|null the DOM class it is rendered as, null when no core type among its prefixes tells
+     * @return ShapeNode its element and value, unknown when no core type among its prefixes tells
      */
-    private function getElement(array $prefixes): ?string
+    private function getField(FormView $view, array $prefixes): ShapeNode
     {
         foreach (array_reverse($prefixes) as $prefix) {
-            if (is_string($prefix) && isset(self::ELEMENTS[$prefix])) {
-                return self::ELEMENTS[$prefix];
+            if (!is_string($prefix) || !isset(self::FIELDS[$prefix])) {
+                continue;
             }
+
+            [$element, $value] = self::FIELDS[$prefix];
+            if ('choice' === $prefix) {
+                // No option selected reads as null
+                $value = $this->isMultiple($view) ? 'string[]' : 'string | null';
+            }
+
+            return ShapeNode::field($element, $value);
         }
 
-        return null;
+        return ShapeNode::field();
+    }
+
+    private function isMultiple(FormView $view): bool
+    {
+        return true === ($view->vars['multiple'] ?? false);
     }
 
     /**
