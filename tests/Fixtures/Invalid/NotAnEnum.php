@@ -11,13 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Silarhi\AppJsBundle\Tests\Fixtures\Enum;
+namespace Silarhi\AppJsBundle\Tests\Fixtures\Invalid;
 
 use Silarhi\AppJsBundle\Attribute\EnumToJs;
 
-/** Not an enum: skipped even when marked */
 #[EnumToJs]
-final class Defaults
+final class NotAnEnum
 {
-    public const RATE = 20;
 }

@@ -15,12 +15,15 @@ namespace Silarhi\AppJsBundle\Tests\Enum;
 
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\Enum\EnumDumper;
-use Silarhi\AppJsBundle\Enum\EnumLocator;
+use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Kind;
+use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Placeholder;
+use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Status;
+use Silarhi\AppJsBundle\Tests\Fixtures\Enum\VatRate;
 use Silarhi\AppJsBundle\Writer\Format;
 
 final class EnumDumperTest extends TestCase
 {
-    public function testDumpsOnlyTheEnumsMarkedEnumToJs(): void
+    public function testDumpsAModulePerEnum(): void
     {
         $files = $this->createDumper()->getFiles();
 
@@ -62,15 +65,13 @@ final class EnumDumperTest extends TestCase
         self::assertSame($this->createDumper()->getFiles()['Status.ts'], $javaScript['Status.js']);
     }
 
-    public function testSkipsMissingDirectories(): void
+    public function testSkipsTheEnumsWithoutCase(): void
     {
-        self::assertSame([], (new EnumDumper(new EnumLocator([__DIR__ . '/missing' => 'App\\Enum'])))->getFiles());
+        self::assertSame([], (new EnumDumper(['Placeholder' => Placeholder::class]))->getFiles());
     }
 
     private function createDumper(Format $format = Format::TypeScript): EnumDumper
     {
-        return new EnumDumper(new EnumLocator([
-            __DIR__ . '/../Fixtures/Enum' => 'Silarhi\\AppJsBundle\\Tests\\Fixtures\\Enum\\',
-        ]), $format);
+        return new EnumDumper(['Kind' => Kind::class, 'Status' => Status::class, 'Vat' => VatRate::class], $format);
     }
 }

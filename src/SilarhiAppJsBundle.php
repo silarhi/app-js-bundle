@@ -14,17 +14,19 @@ declare(strict_types=1);
 namespace Silarhi\AppJsBundle;
 
 use Override;
+use Silarhi\AppJsBundle\Attribute\EnumToJs;
 use Silarhi\AppJsBundle\Command\DumpEnumsCommand;
 use Silarhi\AppJsBundle\Command\DumpFormsCommand;
+use Silarhi\AppJsBundle\DependencyInjection\EnumToJsPass;
 use Silarhi\AppJsBundle\DependencyInjection\FormToJsPass;
 use Silarhi\AppJsBundle\Enum\EnumDumper;
-use Silarhi\AppJsBundle\Enum\EnumLocator;
 use Silarhi\AppJsBundle\Form\FormShapeDumper;
 use Silarhi\AppJsBundle\Twig\AppJsExtension;
 use Silarhi\AppJsBundle\Writer\Format;
 use Silarhi\AppJsBundle\Writer\GeneratedFilesWriter;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
+use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -41,6 +43,7 @@ final class SilarhiAppJsBundle extends AbstractBundle
     {
         parent::build($container);
 
+        $container->addCompilerPass(new EnumToJsPass());
         $container->addCompilerPass(new FormToJsPass());
     }
 
@@ -63,10 +66,10 @@ final class SilarhiAppJsBundle extends AbstractBundle
                             ->defaultValue('ts')
                         ->end()
                         ->arrayNode('paths')
-                            ->info('The directories scanned for enums, with their namespace prefix.')
+                            ->info('Symfony 6.4 to 7.2 only: the directories scanned for #[EnumToJs] enums, with their namespace prefix. Symfony 7.3+ finds them through autoconfiguration.')
+                            ->example(['%kernel.project_dir%/src/Enum' => 'App\\Enum'])
                             ->useAttributeAsKey('directory')
                             ->normalizeKeys(false)
-                            ->defaultValue(['%kernel.project_dir%/src/Enum' => 'App\\Enum'])
                             ->scalarPrototype()->end()
                         ->end()
                     ->end()
@@ -98,13 +101,18 @@ final class SilarhiAppJsBundle extends AbstractBundle
 
         $services->set('silarhi_app_js.writer', GeneratedFilesWriter::class);
 
-        $services->set('silarhi_app_js.enum_locator', EnumLocator::class)
-            ->args([$config['enums']['paths']]);
-        $services->set('silarhi_app_js.enum_dumper', EnumDumper::class)
-            ->args([service('silarhi_app_js.enum_locator'), Format::from($config['enums']['format'])]);
+        // The enums are services of the application's resources: their definitions carry the attribute to the pass
+        $builder->registerAttributeForAutoconfiguration(EnumToJs::class, static function (ChildDefinition $definition, EnumToJs $attribute): void {
+            $definition->addTag(EnumToJsPass::TAG, null === $attribute->name ? [] : ['name' => $attribute->name]);
+        });
+
+        $builder->setParameter(EnumToJsPass::PATHS, $config['enums']['paths']);
+        $services->set(EnumToJsPass::DUMPER, EnumDumper::class)
+            ->arg('$enums', new AbstractArgument('set by EnumToJsPass'))
+            ->arg('$format', Format::from($config['enums']['format']));
         $services->set('silarhi_app_js.command.dump_enums', DumpEnumsCommand::class)
             ->args([
-                service('silarhi_app_js.enum_dumper'),
+                service(EnumToJsPass::DUMPER),
                 service('silarhi_app_js.writer'),
                 $config['enums']['output_dir'],
             ])
