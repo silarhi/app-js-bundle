@@ -97,6 +97,10 @@ export default LeaseStatus
 Only the enums marked `#[EnumToJs]` are dumped (`#[EnumToJs(name: 'Status')]` renames the module). Unit enums take
 their case names as values.
 
+The bundle finds them through autoconfiguration, wherever they live: an enum must be loaded by a service resource of
+the application, as the default `App\` resource of `config/services.yaml` loads `src/`. An enum under one of its
+`exclude` paths is not found.
+
 ## Form shapes
 
 ```php
@@ -207,8 +211,6 @@ silarhi_app_js:
     enums:
         output_dir: '%kernel.project_dir%/assets/js/enums' # owned by app-js:dump-enums: its other .ts files are removed
         format: ts # or js
-        paths:
-            '%kernel.project_dir%/src/Enum': 'App\Enum'
     forms:
         output_dir: '%kernel.project_dir%/assets/js/forms' # owned by app-js:dump-forms
         format: ts # or js

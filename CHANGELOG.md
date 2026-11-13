@@ -4,6 +4,19 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - Unreleased
+
+### Changed
+
+- The enums marked `#[EnumToJs]` are found through autoconfiguration, wherever they live in the application's service
+  resources (the default `App\` resource loads `src/`), on every supported Symfony version.
+- An enum module is named after the enum (or `#[EnumToJs(name: ...)]`), at the root of `enums.output_dir`: two enums
+  with the same name fail the container build.
+
+### Removed
+
+- The `enums.paths` option: remove it from `config/packages/silarhi_app_js.yaml`.
+
 ## [0.2.0] - 2026-11-13
 
 ### Added
@@ -24,5 +37,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.3.0]: https://github.com/silarhi/app-js-bundle/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/silarhi/app-js-bundle/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/silarhi/app-js-bundle/releases/tag/v0.1.0

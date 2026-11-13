@@ -40,8 +40,11 @@ use UnitEnum;
  */
 final readonly class EnumDumper
 {
+    /**
+     * @param array<string, class-string<UnitEnum>> $enums the enums marked #[EnumToJs], by module name
+     */
     public function __construct(
-        private EnumLocator $enumLocator,
+        private array $enums,
         private Format $format = Format::TypeScript,
     ) {
     }
@@ -58,13 +61,13 @@ final readonly class EnumDumper
     public function getFiles(): array
     {
         $files = [];
-        foreach ($this->enumLocator->findEnums() as $relativePath => $enum) {
+        foreach ($this->enums as $name => $enum) {
             $cases = $enum::cases();
             if ([] === $cases) {
                 continue;
             }
 
-            $files[$relativePath . '.' . $this->getExtension()] = $this->render(basename($relativePath), $cases);
+            $files[$name . '.' . $this->getExtension()] = $this->render($name, $cases);
         }
 
         return $files;

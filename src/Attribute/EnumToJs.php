@@ -17,6 +17,9 @@ use Attribute;
 
 /**
  * Dumps an enum as a TypeScript module (app-js:dump-enums). The enums without it are not dumped.
+ *
+ * Found through autoconfiguration: the enum must be loaded by a service resource of the application (the default
+ * `App\` one loads `src/Enum`), not excluded from it.
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class EnumToJs

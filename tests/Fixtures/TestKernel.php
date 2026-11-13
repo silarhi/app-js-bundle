@@ -71,7 +71,6 @@ final class TestKernel extends Kernel
             'enums' => [
                 'output_dir' => '%kernel.cache_dir%/app_js/enums',
                 'format' => $format,
-                'paths' => ['%kernel.project_dir%/tests/Fixtures/Enum' => 'Silarhi\\AppJsBundle\\Tests\\Fixtures\\Enum'],
             ],
             'forms' => [
                 'output_dir' => '%kernel.cache_dir%/app_js/forms',
@@ -79,9 +78,9 @@ final class TestKernel extends Kernel
             ],
         ]);
 
-        $container->services()
-            ->load('Silarhi\\AppJsBundle\\Tests\\Fixtures\\Form\\', __DIR__ . '/Form/*')
-            ->autowire()
-            ->autoconfigure();
+        // As an application's services.yaml loads src/: the enums are found through their definitions
+        $services = $container->services()->defaults()->autowire()->autoconfigure();
+        $services->load('Silarhi\\AppJsBundle\\Tests\\Fixtures\\Enum\\', __DIR__ . '/Enum/*');
+        $services->load('Silarhi\\AppJsBundle\\Tests\\Fixtures\\Form\\', __DIR__ . '/Form/*');
     }
 }
