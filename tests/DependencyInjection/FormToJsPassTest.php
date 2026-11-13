@@ -17,16 +17,19 @@ use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\DependencyInjection\FormToJsPass;
+use Silarhi\AppJsBundle\Form\Variant\MatrixFormVariantProvider;
 use Silarhi\AppJsBundle\Tests\Fixtures\Form\LeaseFormVariants;
 use Silarhi\AppJsBundle\Tests\Fixtures\Form\LeaseType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Form\NotExposedType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Form\UserType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\DuplicateNameType;
+use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\InvalidMatrixType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\NotAProviderType;
-use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\UnknownKeyType;
 use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
+use Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
 
 final class FormToJsPassTest extends TestCase
 {
@@ -42,6 +45,19 @@ final class FormToJsPassTest extends TestCase
         ], $container->getDefinition(FormToJsPass::DUMPER)->getArgument('$forms'));
         // A provider outside the service resources is registered
         self::assertTrue($container->hasDefinition(LeaseFormVariants::class));
+        // The matrix of UserType is given to a provider of its own
+        $locator = $container->getDefinition(FormToJsPass::DUMPER)->getArgument('$variantProviders');
+        self::assertInstanceOf(Reference::class, $locator);
+        $providers = $container->getDefinition((string) $locator)->getArgument(0);
+        self::assertIsArray($providers);
+        self::assertEqualsCanonicalizing([LeaseType::class, UserType::class], array_keys($providers));
+        $argument = $providers[UserType::class];
+        self::assertInstanceOf(ServiceClosureArgument::class, $argument);
+        $reference = $argument->getValues()[0];
+        self::assertInstanceOf(Reference::class, $reference);
+        $userProvider = $container->getDefinition((string) $reference);
+        self::assertSame(MatrixFormVariantProvider::class, $userProvider->getClass());
+        self::assertSame([[], ['with_siren' => [true, false]], null], $userProvider->getArguments());
     }
 
     public function testDoesNothingWithoutSymfonyForm(): void
@@ -94,8 +110,8 @@ final class FormToJsPassTest extends TestCase
      */
     public static function invalidProvider(): iterable
     {
-        yield 'unknown variant key' => [[UnknownKeyType::class], 'Invalid #[FormToJs] variants on "' . UnknownKeyType::class . '": The variant "a" has unknown keys "opts"'];
-        yield 'not a provider' => [[NotAProviderType::class], 'must be an array or the class of a'];
+        yield 'invalid matrix' => [[InvalidMatrixType::class], 'Invalid #[FormToJs] on "' . InvalidMatrixType::class . '": The option "with_siren" of the matrix must be a non-empty list of values, an empty array given.'];
+        yield 'not a provider' => [[NotAProviderType::class], 'must be the class of a'];
         yield 'same name' => [[UserType::class, DuplicateNameType::class], 'are both exposed as "UserForm": give one a name.'];
     }
 

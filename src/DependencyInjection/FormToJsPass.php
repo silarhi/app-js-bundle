@@ -15,14 +15,13 @@ namespace Silarhi\AppJsBundle\DependencyInjection;
 
 use InvalidArgumentException;
 
-use function is_array;
 use function is_string;
 
 use Override;
 use ReflectionClass;
 use Silarhi\AppJsBundle\Attribute\FormToJs;
 use Silarhi\AppJsBundle\Form\Variant\FormVariantProviderInterface;
-use Silarhi\AppJsBundle\Form\Variant\StaticFormVariantProvider;
+use Silarhi\AppJsBundle\Form\Variant\MatrixFormVariantProvider;
 
 use function sprintf;
 
@@ -35,7 +34,7 @@ use Symfony\Component\Form\FormTypeInterface;
 
 /**
  * Finds the form types marked #[FormToJs] and gives app-js:dump-forms their variant providers: the service named by
- * the attribute, or a StaticFormVariantProvider holding its array.
+ * the attribute, wrapped in a MatrixFormVariantProvider when it gives options or a matrix.
  *
  * @internal
  */
@@ -83,8 +82,9 @@ final class FormToJsPass implements CompilerPassInterface
 
             $formTypesByName[$name] = $formType;
             $forms[$formType] = ['name' => $name, 'dynamic' => $formToJs->dynamic];
-            if (null !== $formToJs->variants) {
-                $providers[$formType] = $this->registerProvider($container, $formType, $formToJs->variants);
+            $provider = $this->registerProvider($container, $formType, $formToJs);
+            if ($provider instanceof Reference) {
+                $providers[$formType] = $provider;
             }
         }
 
@@ -96,32 +96,38 @@ final class FormToJsPass implements CompilerPassInterface
     }
 
     /**
-     * @param string|array<array-key, mixed> $variants
+     * The provider of the builds of a form type: none for one build with the default options, the service named by
+     * the attribute alone, or a MatrixFormVariantProvider with the options and the matrix around it.
      */
-    private function registerProvider(ContainerBuilder $container, string $formType, string|array $variants): Reference
+    private function registerProvider(ContainerBuilder $container, string $formType, FormToJs $formToJs): ?Reference
     {
-        if (is_array($variants)) {
-            try {
-                StaticFormVariantProvider::validate($variants);
-            } catch (InvalidArgumentException $exception) {
-                throw new InvalidArgumentException(sprintf('Invalid #[FormToJs] variants on "%s": %s', $formType, $exception->getMessage()), 0, $exception);
+        $variants = null;
+        if (null !== $formToJs->variants) {
+            if (!is_subclass_of($formToJs->variants, FormVariantProviderInterface::class)) {
+                throw new InvalidArgumentException(sprintf('The #[FormToJs] variants of "%s" must be the class of a %s, "%s" given.', $formType, FormVariantProviderInterface::class, $formToJs->variants));
             }
 
-            $id = '.silarhi_app_js.form_variants.' . ContainerBuilder::hash($formType);
-            $container->setDefinition($id, new Definition(StaticFormVariantProvider::class, [$variants]));
+            // A provider outside the application's service resources is registered on the fly
+            if (!$container->has($formToJs->variants)) {
+                $container->setDefinition($formToJs->variants, (new Definition($formToJs->variants))->setAutowired(true)->setAutoconfigured(true));
+            }
 
-            return new Reference($id);
+            $variants = new Reference($formToJs->variants);
         }
 
-        if (!is_subclass_of($variants, FormVariantProviderInterface::class)) {
-            throw new InvalidArgumentException(sprintf('The #[FormToJs] variants of "%s" must be an array or the class of a %s, "%s" given.', $formType, FormVariantProviderInterface::class, $variants));
+        if ([] === $formToJs->options && [] === $formToJs->matrix) {
+            return $variants;
         }
 
-        // A provider outside the application's service resources is registered on the fly
-        if (!$container->has($variants)) {
-            $container->setDefinition($variants, (new Definition($variants))->setAutowired(true)->setAutoconfigured(true));
+        try {
+            MatrixFormVariantProvider::validate($formToJs->options, $formToJs->matrix);
+        } catch (InvalidArgumentException $exception) {
+            throw new InvalidArgumentException(sprintf('Invalid #[FormToJs] on "%s": %s', $formType, $exception->getMessage()), 0, $exception);
         }
 
-        return new Reference($variants);
+        $id = '.silarhi_app_js.form_variants.' . ContainerBuilder::hash($formType);
+        $container->setDefinition($id, new Definition(MatrixFormVariantProvider::class, [$formToJs->options, $formToJs->matrix, $variants]));
+
+        return new Reference($id);
     }
 }

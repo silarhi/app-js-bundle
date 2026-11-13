@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Silarhi\AppJsBundle\Form\FormShapeDumper;
 use Silarhi\AppJsBundle\Form\Variant\FormVariant;
-use Silarhi\AppJsBundle\Form\Variant\StaticFormVariantProvider;
+use Silarhi\AppJsBundle\Form\Variant\FormVariantProviderInterface;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\AbstractItem;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ButtonsType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\DataClassType;
@@ -208,7 +208,7 @@ final class FormShapeDumperTest extends TestCase
     public function testFailsOnAFormThatCannotBeBuilt(): void
     {
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessageMatches('/^Unable to build the form "' . preg_quote(RequiredOptionType::class, '/') . '" \\(variant "0"\\): .*The required option "issuer" is missing\\.$/');
+        $this->expectExceptionMessageMatches('/^Unable to build the form "' . preg_quote(RequiredOptionType::class, '/') . '" \\(variant "default"\\): .*The required option "issuer" is missing\\.$/');
 
         $this->createDumper([RequiredOptionType::class => ['name' => 'RequiredOptionForm', 'dynamic' => true]])->dump();
     }
@@ -257,10 +257,19 @@ final class FormShapeDumperTest extends TestCase
         $providers = [];
         foreach ($variants as $formType => $variant) {
             $list = $variant instanceof FormVariant ? [$variant] : $variant;
-            $providers[$formType] = static fn (): StaticFormVariantProvider => new StaticFormVariantProvider(array_map(
-                static fn (FormVariant $item): array => ['options' => $item->options, 'data' => $item->data],
-                $list,
-            ));
+            $providers[$formType] = static fn (): FormVariantProviderInterface => new class($list) implements FormVariantProviderInterface {
+                /**
+                 * @param list<FormVariant> $variants
+                 */
+                public function __construct(private readonly array $variants)
+                {
+                }
+
+                public function getVariants(): iterable
+                {
+                    return $this->variants;
+                }
+            };
         }
 
         return new FormShapeDumper(new FormFactory($registry), $registry, new ServiceLocator($providers), $forms, $format);

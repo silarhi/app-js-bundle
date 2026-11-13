@@ -123,7 +123,7 @@ final readonly class FormShapeDumper
     private function getVariants(string $formType): iterable
     {
         if (!$this->variantProviders->has($formType)) {
-            return [new FormVariant()];
+            return ['default' => new FormVariant()];
         }
 
         $provider = $this->variantProviders->get($formType);
