@@ -194,17 +194,22 @@ fields, renders as the page of a new entity and needs no variant for an empty en
 without `data_class` (`[]`), `required: false` (`null`) or an `empty_data` that fails (reading submitted fields, a class
 that cannot be built) keeps the build without data; `-v` tells which failed.
 
-Variants known at compile time are an array of `options` (and scalar `data`):
+The options every build needs go in `options`, and the values an option takes in `matrix`: the form is built once per
+combination, with the options (2 × 2 = 4 builds here):
 
 ```php
-#[FormToJs(variants: [
-    'company' => ['options' => ['with_siren' => true]],
-    'person' => ['options' => ['with_siren' => false]],
-])]
+#[FormToJs(
+    options: ['profile' => Profile::Landlord],
+    matrix: [
+        'person_type' => [PersonType::Company, PersonType::Individual],
+        'new' => [false, true],
+    ],
+)]
 final class PartyType extends AbstractType
 ```
 
-Variants that need objects or services come from a provider, a service by its class:
+A matrix builds every combination, so it fits options that change the form on their own. Builds that need objects or
+services, or options that only go together, come from a provider, a service by its class:
 
 ```php
 #[FormToJs(variants: LeaseFormVariants::class)]
@@ -219,6 +224,9 @@ final class LeaseFormVariants implements FormVariantProviderInterface
     }
 }
 ```
+
+With `options` or a `matrix` too, each variant of the provider is built with each combination, its own options winning.
+A matrix stops at 64 builds.
 
 Build the data in memory: the dump must give the same files on every machine, never read it from a database.
 

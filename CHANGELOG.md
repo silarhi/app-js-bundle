@@ -4,6 +4,21 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] - Unreleased
+
+### Added
+
+- `#[FormToJs(options: [...])]` gives the options of every build, and `#[FormToJs(matrix: [...])]` the values each
+  option takes: the form is built once per combination, with the options (`matrix: ['with_bank' => [false, true]]`).
+  With a `variants` provider too, each of its variants is built with each combination. A matrix stops at 64 builds.
+
+### Changed
+
+- **Breaking**: `#[FormToJs(variants: ...)]` only takes the class of a `FormVariantProviderInterface` service. An array
+  of variants becomes `options` and a `matrix`: `['default' => ['options' => ['profile' => X]]]` is
+  `options: ['profile' => X]`, and one variant per value of an option is `matrix: ['option' => [a, b]]`. Variants with
+  data, or with options that only go together, come from a provider.
+
 ## [0.6.0] - 2026-11-13
 
 ### Added
@@ -71,6 +86,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.7.0]: https://github.com/silarhi/app-js-bundle/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/silarhi/app-js-bundle/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/silarhi/app-js-bundle/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/silarhi/app-js-bundle/compare/v0.3.1...v0.4.0

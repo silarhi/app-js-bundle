@@ -19,14 +19,14 @@ use Silarhi\AppJsBundle\Form\Variant\FormVariantProviderInterface;
 /**
  * Dumps the shape of a form type for formView<Shape>() of @silarhi/app-js (app-js:dump-forms).
  *
- * The fields a variant does not render become optional. Variants are an array when their options are known at compile
- * time, or the class of a FormVariantProviderInterface service when they need data or other services:
+ * The form is built once per combination of the values of the matrix, with the options. A field one build does not
+ * render becomes optional:
  *
- *     #[FormToJs(variants: [
- *         'with web site' => ['options' => ['web_site' => true]],
- *         'without' => ['options' => ['web_site' => false]],
- *     ])]
+ *     #[FormToJs(options: ['profile' => Profile::Landlord], matrix: ['with_siren' => [true, false]])]
  *     final class LandlordType extends AbstractType
+ *
+ * Builds that need data, services, or options that go together come from a FormVariantProviderInterface service,
+ * built with the options and the matrix too:
  *
  *     #[FormToJs(variants: LeaseFormVariants::class)]
  *     final class LeaseType extends AbstractType
@@ -35,13 +35,17 @@ use Silarhi\AppJsBundle\Form\Variant\FormVariantProviderInterface;
 final readonly class FormToJs
 {
     /**
-     * @param string|null                                                                            $name     the name of the interface and its file, LandlordForm for LandlordType by default
-     * @param class-string<FormVariantProviderInterface>|array<array-key, array<string, mixed>>|null $variants how to build the form, one build with the default options when null
-     * @param bool                                                                                   $dynamic  false when the PRE_SET_DATA listeners of the form add no field
+     * @param string|null                                     $name     the name of the interface and its file, LandlordForm for LandlordType by default
+     * @param array<string, mixed>                            $options  the options of every build
+     * @param array<string, list<mixed>>                      $matrix   the values of each option to build the form with, one build per combination
+     * @param class-string<FormVariantProviderInterface>|null $variants the service that gives the builds that need data or services
+     * @param bool                                            $dynamic  false when the PRE_SET_DATA listeners of the form add no field
      */
     public function __construct(
         public ?string $name = null,
-        public string|array|null $variants = null,
+        public array $options = [],
+        public array $matrix = [],
+        public ?string $variants = null,
         public bool $dynamic = true,
     ) {
     }

@@ -19,7 +19,7 @@ use Symfony\Component\Form\AbstractType;
 /**
  * @extends AbstractType<mixed>
  */
-#[FormToJs(variants: ['a' => ['opts' => []]])]
-final class UnknownKeyType extends AbstractType
+#[FormToJs(matrix: ['with_siren' => []])]
+final class InvalidMatrixType extends AbstractType
 {
 }
