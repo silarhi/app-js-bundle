@@ -32,6 +32,7 @@ use Silarhi\AppJsBundle\Writer\Format;
 use function sprintf;
 
 use Symfony\Component\Form\Button;
+use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
@@ -71,15 +72,20 @@ final readonly class FormShapeDumper
     {
         $shapes = [];
         $warnings = [];
+        $notices = [];
         foreach ($this->forms as $formType => ['name' => $name, 'dynamic' => $dynamic]) {
             $shape = null;
             $hasData = false;
             $listeners = [];
             foreach ($this->getVariants($formType) as $variantName => $variant) {
-                $form = $this->createForm($formType, (string) $variantName, $variant);
+                $options = $this->getBuildOptions($formType, $variant->options);
+                // Without data, as the page of a new entity: with its empty data
+                $data = $variant->data ?? $this->getEmptyData($formType, (string) $variantName, $options, $notices);
+                $form = $this->createForm($formType, (string) $variantName, $options, $data);
+
                 $node = $this->shapeBuilder->build($form->createView(), $form);
                 $shape = $shape instanceof ShapeNode ? $this->mergeShape($shape, $node, $formType) : $node;
-                $hasData = $hasData || null !== $variant->data;
+                $hasData = $hasData || null !== $form->getConfig()->getData();
                 $listeners += $this->findDataListeners($form, '');
             }
 
@@ -106,7 +112,7 @@ final readonly class FormShapeDumper
 
         ksort($files);
 
-        return new FormShapeDump($files, $warnings);
+        return new FormShapeDump($files, $warnings, $notices);
     }
 
     /**
@@ -130,22 +136,66 @@ final readonly class FormShapeDumper
 
     /**
      * @param class-string<FormTypeInterface<mixed>> $formType
+     * @param array<string, mixed>                   $options
      *
-     * @return FormInterface<mixed>
+     * @return array<string, mixed> the options of a variant, without CSRF token: it is no field of the shape, and needs
+     *                              no session
      */
-    private function createForm(string $formType, string $variantName, FormVariant $variant): FormInterface
+    private function getBuildOptions(string $formType, array $options): array
     {
-        $options = $variant->options;
-        // The token is no field of the shape, and needs no session
         if ($this->formRegistry->getType($formType)->getOptionsResolver()->isDefined('csrf_protection')) {
             $options += ['csrf_protection' => false];
         }
 
+        return $options;
+    }
+
+    /**
+     * @param class-string<FormTypeInterface<mixed>> $formType
+     * @param array<string, mixed>                   $options
+     *
+     * @return FormInterface<mixed>
+     */
+    private function createForm(string $formType, string $variantName, array $options, mixed $data): FormInterface
+    {
         try {
-            return $this->formFactory->create($formType, $variant->data, $options);
+            return $this->formFactory->create($formType, $data, $options);
         } catch (Throwable $exception) {
             throw new LogicException(sprintf('Unable to build the form "%s" (variant "%s"): %s', $formType, $variantName, $exception->getMessage()), 0, $exception);
         }
+    }
+
+    /**
+     * The empty data of a form built without data, computed as Symfony does when the form is submitted empty: a new
+     * instance of its data_class by default, or what its own empty_data gives. Its options are resolved and its
+     * empty_data called on a bare form of the same data_class, so neither buildForm() nor a PRE_SET_DATA listener runs
+     * without data. Only an object counts: the [] or '' of a type without data_class, or the null of a form that is not
+     * required, is no data.
+     *
+     * @param class-string<FormTypeInterface<mixed>> $formType
+     * @param array<string, mixed>                   $options
+     * @param list<string>                           $notices
+     */
+    private function getEmptyData(string $formType, string $variantName, array $options, array &$notices): ?object
+    {
+        try {
+            $resolved = $this->formRegistry->getType($formType)->getOptionsResolver()->resolve($options);
+            $emptyData = $resolved['empty_data'] ?? null;
+            if ($emptyData instanceof Closure) {
+                $emptyData = $emptyData($this->formFactory->create(FormType::class, null, [
+                    'data_class' => $resolved['data_class'] ?? null,
+                    'required' => $resolved['required'] ?? true,
+                    'compound' => $resolved['compound'] ?? true,
+                    'auto_initialize' => false,
+                ]), null);
+            }
+        } catch (Throwable $exception) {
+            $notices[] = sprintf('%s (variant "%s") is built without data: its empty data failed (%s).', $formType, $variantName, $exception->getMessage());
+
+            return null;
+        }
+
+        return is_object($emptyData) ? $emptyData : null;
     }
 
     private function mergeShape(ShapeNode $shape, ShapeNode $node, string $formType): ShapeNode

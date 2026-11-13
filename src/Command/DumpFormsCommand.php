@@ -60,6 +60,12 @@ final class DumpFormsCommand extends Command
             $io->warning($warning);
         }
 
+        if ($io->isVerbose()) {
+            foreach ($dump->notices as $notice) {
+                $io->note($notice);
+            }
+        }
+
         $failed = true === $input->getOption('strict') && [] !== $dump->warnings;
 
         if (true === $input->getOption('check')) {

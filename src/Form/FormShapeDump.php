@@ -21,10 +21,12 @@ final readonly class FormShapeDump
     /**
      * @param array<string, string> $files    the content of each file, by its path relative to the output directory
      * @param list<string>          $warnings the forms whose shape may miss fields
+     * @param list<string>          $notices  the forms built without data because their empty_data failed
      */
     public function __construct(
         public array $files,
         public array $warnings,
+        public array $notices = [],
     ) {
     }
 }

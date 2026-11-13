@@ -14,14 +14,21 @@ declare(strict_types=1);
 namespace Silarhi\AppJsBundle\Tests\Form;
 
 use LogicException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Silarhi\AppJsBundle\Form\FormShapeDumper;
 use Silarhi\AppJsBundle\Form\Variant\FormVariant;
 use Silarhi\AppJsBundle\Form\Variant\StaticFormVariantProvider;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\AbstractItem;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ButtonsType;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\DataClassType;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\DataListenerType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ElementsType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\InvokableListener;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\Item;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ListenersType;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\NamedItem;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\RenderedItemsType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\RequiredOptionType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\StaticListenerType;
@@ -91,6 +98,90 @@ final class FormShapeDumperTest extends TestCase
                 save: FormField<HTMLButtonElement>
             }
             TS, $dump->files['ElementsForm.ts']);
+    }
+
+    public function testBuildsANewDataClassWithoutData(): void
+    {
+        $dump = $this->createDumper([DataClassType::class => ['name' => 'DataClassForm', 'dynamic' => true]])->dump();
+
+        // buildForm() reads it, its PRE_SET_DATA listener adds a field: no warning, the dump had data
+        self::assertSame([], $dump->warnings);
+        self::assertStringContainsString("    name: FormField<HTMLInputElement, string>\n    fromData: FormField<HTMLInputElement, string>\n    fromListener: FormField<HTMLInputElement, string>\n", $dump->files['DataClassForm.ts']);
+    }
+
+    public function testKeepsTheDataOfTheVariant(): void
+    {
+        $dump = $this->createDumper(
+            [DataClassType::class => ['name' => 'DataClassForm', 'dynamic' => true]],
+            [DataClassType::class => [new FormVariant(['data_class' => null], ['name' => 'a'])]],
+        )->dump();
+
+        self::assertStringContainsString('fromData: FormField', $dump->files['DataClassForm.ts']);
+    }
+
+    public function testNeverBuildsATypeWithoutDataBeforeItsEmptyData(): void
+    {
+        $dump = $this->createDumper([DataListenerType::class => ['name' => 'DataListenerForm', 'dynamic' => true]])->dump();
+
+        self::assertStringContainsString('    name: FormField<HTMLInputElement, string>', $dump->files['DataListenerForm.ts']);
+    }
+
+    public function testBuildsTheEmptyDataOfTheType(): void
+    {
+        $dump = $this->createDumper(
+            [DataClassType::class => ['name' => 'DataClassForm', 'dynamic' => true]],
+            [DataClassType::class => [new FormVariant(['data_class' => NamedItem::class, 'empty_data' => static fn (): NamedItem => new NamedItem('new')])]],
+        )->dump();
+
+        self::assertSame([], $dump->warnings);
+        self::assertSame([], $dump->notices);
+        self::assertStringContainsString("    fromData: FormField<HTMLInputElement, string>\n    fromListener: FormField<HTMLInputElement, string>\n", $dump->files['DataClassForm.ts']);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, string|null}>
+     */
+    public static function provideEmptyDataThatIsNoData(): iterable
+    {
+        yield 'a constructor argument' => [['data_class' => NamedItem::class], 'Too few arguments'];
+        yield 'abstract' => [['data_class' => AbstractItem::class], 'Cannot instantiate abstract class'];
+        yield 'a failing empty_data' => [['empty_data' => static fn (): never => throw new RuntimeException('No client submitted')], 'No client submitted'];
+        yield 'no data_class' => [['data_class' => null], null];
+        yield 'not required' => [['required' => false], null];
+        yield 'a value' => [['empty_data' => 'none'], null];
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    #[DataProvider('provideEmptyDataThatIsNoData')]
+    public function testBuildsWithoutDataAnEmptyDataThatIsNoObject(array $options, ?string $notice): void
+    {
+        $dump = $this->createDumper(
+            [DataClassType::class => ['name' => 'DataClassForm', 'dynamic' => true]],
+            [DataClassType::class => [new FormVariant($options)]],
+        )->dump();
+
+        self::assertStringNotContainsString('fromData', $dump->files['DataClassForm.ts']);
+        self::assertStringNotContainsString('fromListener', $dump->files['DataClassForm.ts']);
+        self::assertCount(1, $dump->warnings);
+        if (null === $notice) {
+            self::assertSame([], $dump->notices);
+        } else {
+            self::assertCount(1, $dump->notices);
+            self::assertStringStartsWith(DataClassType::class . ' (variant "0") is built without data: its empty data failed (', $dump->notices[0]);
+            self::assertStringContainsString($notice, $dump->notices[0]);
+        }
+    }
+
+    public function testBuildsANewDataClassForEachVariantWithoutData(): void
+    {
+        $dump = $this->createDumper(
+            [DataClassType::class => ['name' => 'DataClassForm', 'dynamic' => true]],
+            [DataClassType::class => [new FormVariant(['data_class' => Item::class]), new FormVariant(['data_class' => NamedItem::class])]],
+        )->dump();
+
+        self::assertStringContainsString("    fromData?: FormField<HTMLInputElement, string>\n", $dump->files['DataClassForm.ts']);
     }
 
     public function testReadsTheItemShapeFromTheRenderedItems(): void

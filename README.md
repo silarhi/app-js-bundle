@@ -186,6 +186,14 @@ Only when the shapes are the same: an embedded form built with options that chan
 A form whose fields depend on its options or its data is built once per **variant**. A field missing from a variant
 becomes optional (`siren?: FormField`), so the page reads it with `form.find()`.
 
+A build without data (no variant, or a variant that gives none) gets the form's empty data, as Symfony computes it when
+the form is submitted empty: a new instance of its `data_class` by default, or what its own `empty_data` gives (a type
+whose class needs constructor arguments sets it). It is computed from the resolved options, so neither `buildForm()`
+nor a `PRE_SET_DATA` listener ever runs without data: a type that reads `$options['data']`, or whose listeners add
+fields, renders as the page of a new entity and needs no variant for an empty entity. Only an object counts: a type
+without `data_class` (`[]`), `required: false` (`null`) or an `empty_data` that fails (reading submitted fields, a class
+that cannot be built) keeps the build without data; `-v` tells which failed.
+
 Variants known at compile time are an array of `options` (and scalar `data`):
 
 ```php
@@ -207,7 +215,7 @@ final class LeaseFormVariants implements FormVariantProviderInterface
     public function getVariants(): iterable
     {
         yield 'furnished' => new FormVariant(data: (new Lease())->setFurnished(true));
-        yield 'unfurnished' => new FormVariant(['issuer' => new Issuer()], new Lease());
+        yield 'unfurnished' => new FormVariant(['issuer' => new Issuer()]); // data: a new Lease, its empty data
     }
 }
 ```
@@ -215,7 +223,8 @@ final class LeaseFormVariants implements FormVariantProviderInterface
 Build the data in memory: the dump must give the same files on every machine, never read it from a database.
 
 Fields added by a `PRE_SET_DATA` listener only appear with data. `app-js:dump-forms` warns about each form type with
-such a listener and no variant with data; `#[FormToJs(dynamic: false)]` silences it for listeners that add no field.
+such a listener and no build with data (given, or its empty data); `#[FormToJs(dynamic: false)]` silences it for
+listeners that add no field.
 
 Other options: `#[FormToJs(name: 'Party')]` names the interface and its file (`PartyForm` for `PartyType` by default).
 
