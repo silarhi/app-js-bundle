@@ -51,25 +51,25 @@ final class BundleTest extends KernelTestCase
             import type { PhoneForm } from './PhoneForm'
 
             export interface UserForm {
-                name: FormField
+                name: FormField<HTMLInputElement>
                 size: FormField
                 tags: FormField
                 address: AddressForm
                 billingAddress: {
-                    street: FormField
-                    city: FormField
-                    country: FormField
+                    street: FormField<HTMLInputElement>
+                    city: FormField<HTMLInputElement>
+                    country: FormField<HTMLInputElement>
                 }
                 phones: FormCollection<PhoneForm>
-                notes: FormCollection<FormField>
+                notes: FormCollection<FormField<HTMLInputElement>>
                 emails: FormCollection<AnyShape>
-                'start-date': FormField
-                siren?: FormField
+                'start-date': FormField<HTMLInputElement>
+                siren?: FormField<HTMLInputElement>
             }
 
             TS, file_get_contents($directory . '/UserForm.ts'));
 
-        self::assertStringContainsString("export interface Lease {\n    reference: FormField\n    inventory?: FormField\n}\n", (string) file_get_contents($directory . '/Lease.ts'));
+        self::assertStringContainsString("export interface Lease {\n    reference: FormField<HTMLInputElement>\n    inventory?: FormField<HTMLInputElement>\n}\n", (string) file_get_contents($directory . '/Lease.ts'));
         self::assertFileExists($directory . '/ContactForm.ts');
     }
 

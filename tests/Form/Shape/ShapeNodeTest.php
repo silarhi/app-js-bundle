@@ -51,6 +51,17 @@ final class ShapeNodeTest extends TestCase
         self::assertFalse($merged->item->isOptional('number'));
     }
 
+    public function testAFieldRenderedAsTwoElementsHasNone(): void
+    {
+        $select = ShapeNode::field('HTMLSelectElement');
+
+        self::assertSame('HTMLSelectElement', $select->merge(ShapeNode::field('HTMLSelectElement'))->element);
+        self::assertNull($select->merge(ShapeNode::field('HTMLInputElement'))->element);
+        self::assertNull($select->merge(ShapeNode::field())->element);
+        self::assertTrue($select->equals(ShapeNode::field('HTMLSelectElement')));
+        self::assertFalse($select->equals(ShapeNode::field()));
+    }
+
     public function testComparesFieldsInAnyOrder(): void
     {
         $shape = ShapeNode::form(['a' => ShapeNode::field(), 'b' => ShapeNode::collection(ShapeNode::form([]))], UserType::class);

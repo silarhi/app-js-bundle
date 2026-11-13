@@ -36,6 +36,13 @@ final class FormShapeRendererTest extends TestCase
             TS, $ts);
     }
 
+    public function testNamesTheElementOfAField(): void
+    {
+        $ts = (new FormShapeRenderer())->render('KindForm', 'App\\Form\\KindType', ShapeNode::form(['kind' => ShapeNode::field('HTMLSelectElement'), 'other' => ShapeNode::field()]));
+
+        self::assertStringContainsString("    kind: FormField<HTMLSelectElement>\n    other: FormField\n", $ts);
+    }
+
     public function testReferencesTheDumpedFormsOfTheSameShape(): void
     {
         $category = ShapeNode::form([

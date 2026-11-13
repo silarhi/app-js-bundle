@@ -125,13 +125,14 @@ writes `assets/js/forms/PartyForm.ts`:
 import type { FormCollection, FormField } from '@silarhi/app-js/form'
 
 export interface PartyForm {
-    name: FormField
+    name: FormField<HTMLInputElement>
+    country: FormField<HTMLSelectElement>
     address: {
-        street: FormField
-        city: FormField
+        street: FormField<HTMLInputElement>
+        city: FormField<HTMLInputElement>
     }
     phones: FormCollection<{
-        number: FormField
+        number: FormField<HTMLInputElement>
     }>
 }
 ```
@@ -144,10 +145,17 @@ import type { PartyForm } from '@/js/forms/PartyForm'
 const form = formView<PartyForm>(container.querySelector('form'))
 form.get('phones.0.number')
 form.get('adress.city') // TS2345
+form.get('country').element // HTMLSelectElement | null
 ```
 
 The shape is read from the form view, as `formView()` reads the DOM: embedded forms are nested objects, collections
 take the shape of their prototype and rendered items, expanded choices are one field. The CSRF token is left out.
+
+A field names the element it is rendered as, from the core type it extends: `HTMLSelectElement` for a choice (an
+entity, an enum, a country), `HTMLTextAreaElement`, `HTMLButtonElement`, `HTMLInputElement` for the other core types
+rendered as an input. An expanded choice (the container of its options), a type no core type tells about, or a field
+rendered as different elements by two variants is a plain `FormField`, an `HTMLElement`. A form type of your own whose
+widget renders something else than its parent should extend a type that renders the same element.
 
 An embedded form whose type is marked `#[FormToJs]` too is a reference to its interface, imported from its file:
 
