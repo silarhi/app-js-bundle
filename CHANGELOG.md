@@ -4,7 +4,7 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.8.0] - Unreleased
+## [0.8.0] - 2026-11-19
 
 ### Added
 
@@ -94,6 +94,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.8.0]: https://github.com/silarhi/app-js-bundle/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/silarhi/app-js-bundle/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/silarhi/app-js-bundle/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/silarhi/app-js-bundle/compare/v0.4.0...v0.5.0
