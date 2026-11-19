@@ -24,6 +24,7 @@ use Silarhi\AppJsBundle\Tests\Fixtures\Form\NotExposedType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Form\UserType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\DuplicateNameType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\InvalidMatrixType;
+use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\InvalidOptionalType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\NotAProviderType;
 use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
 use Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
@@ -40,8 +41,8 @@ final class FormToJsPassTest extends TestCase
         (new FormToJsPass())->process($container);
 
         self::assertSame([
-            LeaseType::class => ['name' => 'Lease', 'dynamic' => true],
-            UserType::class => ['name' => 'UserForm', 'dynamic' => true],
+            LeaseType::class => ['name' => 'Lease', 'dynamic' => true, 'optional' => []],
+            UserType::class => ['name' => 'UserForm', 'dynamic' => true, 'optional' => ['billingAddress.country']],
         ], $container->getDefinition(FormToJsPass::DUMPER)->getArgument('$forms'));
         // A provider outside the service resources is registered
         self::assertTrue($container->hasDefinition(LeaseFormVariants::class));
@@ -112,6 +113,7 @@ final class FormToJsPassTest extends TestCase
     {
         yield 'invalid matrix' => [[InvalidMatrixType::class], 'Invalid #[FormToJs] on "' . InvalidMatrixType::class . '": The option "with_siren" of the matrix must be a non-empty list of values, an empty array given.'];
         yield 'not a provider' => [[NotAProviderType::class], 'must be the class of a'];
+        yield 'empty optional path' => [[InvalidOptionalType::class], 'Invalid #[FormToJs] on "' . InvalidOptionalType::class . '": the optional fields must be a list of non-empty paths.'];
         yield 'same name' => [[UserType::class, DuplicateNameType::class], 'are both exposed as "UserForm": give one a name.'];
     }
 

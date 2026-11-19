@@ -62,6 +62,26 @@ final class FormShapeDumperTest extends TestCase
         self::assertSame([], $dump->warnings);
     }
 
+    public function testReadsTheDeclaredFieldsAsOptional(): void
+    {
+        $dump = $this->createDumper([ButtonsType::class => ['name' => 'ButtonsForm', 'dynamic' => true, 'optional' => ['name', 'actions.{index}.label']]])->dump();
+
+        self::assertStringContainsString(
+            "    name?: FormField<HTMLInputElement, string>\n    actions: FormCollection<{\n        label?: FormField<HTMLInputElement, string>\n        remove: FormField<HTMLButtonElement>\n    }>\n",
+            $dump->files['ButtonsForm.ts'],
+        );
+    }
+
+    public function testFailsOnAnOptionalFieldOfNoBuild(): void
+    {
+        $dumper = $this->createDumper([ButtonsType::class => ['name' => 'ButtonsForm', 'dynamic' => true, 'optional' => ['title']]]);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('The #[FormToJs] optional field "title" of "' . ButtonsType::class . '" is in no build: No field "title".');
+
+        $dumper->dump();
+    }
+
     public function testDumpsTheButtonsAsFields(): void
     {
         $dump = $this->createDumper([ButtonsType::class => ['name' => 'ButtonsForm', 'dynamic' => true]])->dump();
@@ -248,8 +268,8 @@ final class FormShapeDumperTest extends TestCase
     }
 
     /**
-     * @param array<class-string<FormTypeInterface<mixed>>, array{name: string, dynamic: bool}> $forms
-     * @param array<class-string, FormVariant|list<FormVariant>>                                $variants
+     * @param array<class-string<FormTypeInterface<mixed>>, array{name: string, dynamic: bool, optional?: list<string>}> $forms
+     * @param array<class-string, FormVariant|list<FormVariant>>                                                         $variants
      */
     private function createDumper(array $forms, array $variants = [], Format $format = Format::TypeScript): FormShapeDumper
     {

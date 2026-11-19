@@ -48,8 +48,8 @@ use Throwable;
 final readonly class FormShapeDumper
 {
     /**
-     * @param ContainerInterface                                                                $variantProviders the FormVariantProviderInterface of each form type that has variants
-     * @param array<class-string<FormTypeInterface<mixed>>, array{name: string, dynamic: bool}> $forms            the form types marked #[FormToJs]
+     * @param ContainerInterface                                                                                         $variantProviders the FormVariantProviderInterface of each form type that has variants
+     * @param array<class-string<FormTypeInterface<mixed>>, array{name: string, dynamic: bool, optional?: list<string>}> $forms            the form types marked #[FormToJs]
      */
     public function __construct(
         private FormFactoryInterface $formFactory,
@@ -73,7 +73,8 @@ final readonly class FormShapeDumper
         $shapes = [];
         $warnings = [];
         $notices = [];
-        foreach ($this->forms as $formType => ['name' => $name, 'dynamic' => $dynamic]) {
+        foreach ($this->forms as $formType => $config) {
+            ['name' => $name, 'dynamic' => $dynamic] = $config;
             $shape = null;
             $hasData = false;
             $listeners = [];
@@ -91,6 +92,10 @@ final readonly class FormShapeDumper
 
             if (!$shape instanceof ShapeNode) {
                 throw new LogicException(sprintf('The form type "%s" has no variant to build.', $formType));
+            }
+
+            foreach ($config['optional'] ?? [] as $path) {
+                $shape = $this->markOptional($shape, $path, $formType);
             }
 
             if ($dynamic && !$hasData && [] !== $listeners) {
@@ -196,6 +201,15 @@ final readonly class FormShapeDumper
         }
 
         return is_object($emptyData) ? $emptyData : null;
+    }
+
+    private function markOptional(ShapeNode $shape, string $path, string $formType): ShapeNode
+    {
+        try {
+            return $shape->withOptional($path);
+        } catch (LogicException $exception) {
+            throw new LogicException(sprintf('The #[FormToJs] optional field "%s" of "%s" is in no build: %s', $path, $formType, $exception->getMessage()), 0, $exception);
+        }
     }
 
     private function mergeShape(ShapeNode $shape, ShapeNode $node, string $formType): ShapeNode

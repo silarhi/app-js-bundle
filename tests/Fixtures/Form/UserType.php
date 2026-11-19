@@ -24,7 +24,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 /**
  * @extends AbstractType<mixed>
  */
-#[FormToJs(matrix: ['with_siren' => [true, false]])]
+#[FormToJs(matrix: ['with_siren' => [true, false]], optional: ['billingAddress.country'])]
 final class UserType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void

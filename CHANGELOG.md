@@ -4,6 +4,14 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0] - Unreleased
+
+### Added
+
+- `#[FormToJs(optional: [...])]` reads the fields at the given dot paths as optional (`sharedAccount?:`), for a field
+  every build has but the template does not always render: `optional: ['sharedAccount', 'address.country',
+'phones.{index}.fax']`. A path that matches no field of the builds fails the dump.
+
 ## [0.7.0] - 2026-11-13
 
 ### Added

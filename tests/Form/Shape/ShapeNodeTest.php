@@ -40,6 +40,36 @@ final class ShapeNodeTest extends TestCase
         self::assertTrue($optional->merge(ShapeNode::form(['a' => ShapeNode::field()]))->isOptional('a'));
     }
 
+    public function testMarksTheFieldAtAPathOptional(): void
+    {
+        $shape = ShapeNode::form([
+            'name' => ShapeNode::field(),
+            'address' => ShapeNode::form(['street' => ShapeNode::field(), 'country' => ShapeNode::field()]),
+            'phones' => ShapeNode::collection(ShapeNode::form(['number' => ShapeNode::field(), 'fax' => ShapeNode::field()])),
+        ], UserType::class);
+
+        $marked = $shape->withOptional('name')->withOptional('address.country')->withOptional('phones.{index}.fax');
+
+        self::assertTrue($marked->isOptional('name'));
+        self::assertFalse($marked->isOptional('address'));
+        self::assertSame(['street', 'country'], array_keys($marked->children['address']->children));
+        self::assertTrue($marked->children['address']->isOptional('country'));
+        self::assertFalse($marked->children['address']->isOptional('street'));
+        self::assertTrue($marked->children['phones']->item?->isOptional('fax'));
+        self::assertSame(['name', 'address', 'phones'], array_keys($marked->children));
+        self::assertSame(UserType::class, $marked->formType);
+        // Immutable
+        self::assertFalse($shape->isOptional('name'));
+    }
+
+    public function testRefusesAPathMatchingNoField(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('In "address": No field "zip".');
+
+        ShapeNode::form(['address' => ShapeNode::form(['street' => ShapeNode::field()])])->withOptional('address.zip');
+    }
+
     public function testMergesCollectionItems(): void
     {
         $merged = ShapeNode::collection(null)
