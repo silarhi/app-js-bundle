@@ -230,6 +230,17 @@ A matrix stops at 64 builds.
 
 Build the data in memory: the dump must give the same files on every machine, never read it from a database.
 
+A field every build has, but the template renders only sometimes (`{% if … %}{{ form_row(form.sharedAccount) }}`, the
+others marked rendered with `setRendered`), is made optional by its dot path, so the shape does not promise it:
+
+```php
+#[FormToJs(optional: ['sharedAccount', 'address.country', 'phones.{index}.fax'])]
+final class SubscriptionType extends AbstractType
+```
+
+A path that matches no field of any build fails the dump. A field no build has cannot be made optional: its element and
+value come from a build, so give a variant that renders it.
+
 Fields added by a `PRE_SET_DATA` listener only appear with data. `app-js:dump-forms` warns about each form type with
 such a listener and no build with data (given, or its empty data); `#[FormToJs(dynamic: false)]` silences it for
 listeners that add no field.

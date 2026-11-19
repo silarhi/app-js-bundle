@@ -67,6 +67,40 @@ final readonly class ShapeNode
         return isset($this->optional[$name]);
     }
 
+    /**
+     * The same node, the field at the dot path read as optional: `sharedAccount`, `address.country`, `phones.{index}.fax`
+     * for the item of a collection.
+     *
+     * @throws LogicException when the path matches no field of the node
+     */
+    public function withOptional(string $path): self
+    {
+        $parts = explode('.', $path, 2);
+        $name = $parts[0];
+        $rest = $parts[1] ?? null;
+
+        if (ShapeKind::Collection === $this->kind && '{index}' === $name && $this->item instanceof self && null !== $rest) {
+            return self::collection($this->item->withOptional($rest));
+        }
+
+        if (ShapeKind::Form !== $this->kind || !isset($this->children[$name])) {
+            throw new LogicException(sprintf('No field "%s".', $name));
+        }
+
+        if (null === $rest) {
+            return new self(ShapeKind::Form, $this->children, $this->optional + [$name => true], formType: $this->formType);
+        }
+
+        $children = $this->children;
+        try {
+            $children[$name] = $children[$name]->withOptional($rest);
+        } catch (LogicException $exception) {
+            throw new LogicException(sprintf('In "%s": %s', $name, $exception->getMessage()), 0, $exception);
+        }
+
+        return new self(ShapeKind::Form, $children, $this->optional, formType: $this->formType);
+    }
+
     /** The same fields, rendered as the same elements and read as the same values, the same optional ones, in any order: the form types that built them do not matter. */
     public function equals(self $other): bool
     {

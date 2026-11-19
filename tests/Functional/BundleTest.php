@@ -58,7 +58,7 @@ final class BundleTest extends KernelTestCase
                 billingAddress: {
                     street: FormField<HTMLInputElement, string>
                     city: FormField<HTMLInputElement, string>
-                    country: FormField<HTMLInputElement, string>
+                    country?: FormField<HTMLInputElement, string>
                 }
                 phones: FormCollection<PhoneForm>
                 notes: FormCollection<FormField<HTMLInputElement, string>>

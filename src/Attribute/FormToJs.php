@@ -30,6 +30,10 @@ use Silarhi\AppJsBundle\Form\Variant\FormVariantProviderInterface;
  *
  *     #[FormToJs(variants: LeaseFormVariants::class)]
  *     final class LeaseType extends AbstractType
+ *
+ * A field every build has, but the template does not always render, is made optional by its path:
+ *
+ *     #[FormToJs(optional: ['sharedAccount', 'address.country'])]
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class FormToJs
@@ -40,6 +44,7 @@ final readonly class FormToJs
      * @param array<string, list<mixed>>                      $matrix   the values of each option to build the form with, one build per combination
      * @param class-string<FormVariantProviderInterface>|null $variants the service that gives the builds that need data or services
      * @param bool                                            $dynamic  false when the PRE_SET_DATA listeners of the form add no field
+     * @param list<string>                                    $optional the dot paths of the fields to read as optional (`?:`), rendered or not by the template
      */
     public function __construct(
         public ?string $name = null,
@@ -47,6 +52,7 @@ final readonly class FormToJs
         public array $matrix = [],
         public ?string $variants = null,
         public bool $dynamic = true,
+        public array $optional = [],
     ) {
     }
 }

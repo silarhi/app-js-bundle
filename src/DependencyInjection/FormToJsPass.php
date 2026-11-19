@@ -81,7 +81,13 @@ final class FormToJsPass implements CompilerPassInterface
             }
 
             $formTypesByName[$name] = $formType;
-            $forms[$formType] = ['name' => $name, 'dynamic' => $formToJs->dynamic];
+            foreach ($formToJs->optional as $path) {
+                if ('' === $path) {
+                    throw new InvalidArgumentException(sprintf('Invalid #[FormToJs] on "%s": the optional fields must be a list of non-empty paths.', $formType));
+                }
+            }
+
+            $forms[$formType] = ['name' => $name, 'dynamic' => $formToJs->dynamic, 'optional' => $formToJs->optional];
             $provider = $this->registerProvider($container, $formType, $formToJs);
             if ($provider instanceof Reference) {
                 $providers[$formType] = $provider;
