@@ -13,27 +13,15 @@ declare(strict_types=1);
 
 namespace Silarhi\AppJsBundle\Twig;
 
-use Override;
-
 use function sprintf;
 
 use stdClass;
-use Twig\Extension\AbstractExtension;
-use Twig\TwigFunction;
 
 /**
  * @internal
  */
-final class AppJsExtension extends AbstractExtension
+final class AppJsExtension
 {
-    #[Override]
-    public function getFunctions(): array
-    {
-        return [
-            new TwigFunction('load_page', $this->loadPage(...), ['is_safe' => ['html_attr']]),
-        ];
-    }
-
     /**
      * The attributes read by the `data-page` listener of @silarhi/app-js:
      *
@@ -42,6 +30,7 @@ final class AppJsExtension extends AbstractExtension
      * @param string|list<string>       $pageIds
      * @param array<string, mixed>|null $params
      */
+    #[\Twig\Attribute\AsTwigFunction(name: 'load_page', isSafe: ['html_attr'])]
     public function loadPage(string|array $pageIds, ?array $params = null): string
     {
         $page = json_encode((array) $pageIds, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR);

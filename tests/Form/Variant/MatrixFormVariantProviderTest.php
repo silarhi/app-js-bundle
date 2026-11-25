@@ -89,11 +89,10 @@ final class MatrixFormVariantProviderTest extends TestCase
         self::assertEquals(['furnished' => new FormVariant(['profile' => 'landlord'])], $variants);
     }
 
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testAcceptsTheMostCombinations(): void
     {
         MatrixFormVariantProvider::validate([], ['a' => range(1, 8), 'b' => range(1, 8)]);
-
-        $this->addToAssertionCount(1);
     }
 
     /**
