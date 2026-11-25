@@ -36,6 +36,25 @@ final class BundleTest extends KernelTestCase
         (new Filesystem())->remove([dirname(__DIR__, 2) . '/var/cache/test/app_js', dirname(__DIR__, 2) . '/var/cache/js/app_js']);
     }
 
+    public function testDumpsTheConstantsThenChecksThem(): void
+    {
+        $directory = dirname(__DIR__, 2) . '/var/cache/test/app_js/constants';
+        self::assertSame(Command::FAILURE, $this->executeCommand('app-js:dump-constants', ['--check' => true])->getStatusCode());
+
+        $tester = $this->executeCommand('app-js:dump-constants');
+
+        $tester->assertCommandIsSuccessful();
+        self::assertStringContainsString('Dumped the constants of 3 class(es), 3 file(s) changed.', $tester->getDisplay());
+        self::assertFileExists($directory . '/Limits.ts');
+        self::assertFileDoesNotExist($directory . '/Internals.ts');
+        self::assertFileDoesNotExist($directory . '/Unmarked.ts');
+        self::assertStringContainsString("export const MAX_SIZE = 2000000\n", (string) file_get_contents($directory . '/Upload.ts'));
+
+        $check = $this->executeCommand('app-js:dump-constants', ['--check' => true]);
+        $check->assertCommandIsSuccessful();
+        self::assertStringContainsString('3 constants file(s) up to date.', $check->getDisplay());
+    }
+
     public function testDumpsTheFormShapes(): void
     {
         $tester = $this->executeCommand('app-js:dump-forms');

@@ -14,9 +14,13 @@ declare(strict_types=1);
 namespace Silarhi\AppJsBundle;
 
 use Override;
+use Silarhi\AppJsBundle\Attribute\ConstantsToJs;
 use Silarhi\AppJsBundle\Attribute\EnumToJs;
+use Silarhi\AppJsBundle\Command\DumpConstantsCommand;
 use Silarhi\AppJsBundle\Command\DumpEnumsCommand;
 use Silarhi\AppJsBundle\Command\DumpFormsCommand;
+use Silarhi\AppJsBundle\Constants\ConstantsDumper;
+use Silarhi\AppJsBundle\DependencyInjection\ConstantsToJsPass;
 use Silarhi\AppJsBundle\DependencyInjection\EnumToJsPass;
 use Silarhi\AppJsBundle\DependencyInjection\FormToJsPass;
 use Silarhi\AppJsBundle\Enum\EnumDumper;
@@ -44,6 +48,7 @@ final class SilarhiAppJsBundle extends AbstractBundle
         parent::build($container);
 
         $container->addCompilerPass(new EnumToJsPass());
+        $container->addCompilerPass(new ConstantsToJsPass());
         $container->addCompilerPass(new FormToJsPass());
     }
 
@@ -74,6 +79,28 @@ final class SilarhiAppJsBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('constants')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->scalarNode('output_dir')
+                            ->info('The directory of the dumped constants, owned by app-js:dump-constants.')
+                            ->defaultValue('%kernel.project_dir%/assets/js/constants')
+                            ->cannotBeEmpty()
+                        ->end()
+                        ->enumNode('format')
+                            ->info('ts: .ts modules, js: .js modules (the same code).')
+                            ->values(['ts', 'js'])
+                            ->defaultValue('ts')
+                        ->end()
+                        ->arrayNode('paths')
+                            ->info('The directories scanned for #[ConstantsToJs] classes, with their namespace prefix: for the classes no service resource loads (and the enums, on Symfony 6.4 to 7.2). The others are found through autoconfiguration.')
+                            ->example(['%kernel.project_dir%/src/Entity' => 'App\\Entity'])
+                            ->useAttributeAsKey('directory')
+                            ->normalizeKeys(false)
+                            ->scalarPrototype()->end()
+                        ->end()
+                    ->end()
+                ->end()
                 ->arrayNode('forms')
                     ->addDefaultsIfNotSet()
                     ->children()
@@ -95,7 +122,7 @@ final class SilarhiAppJsBundle extends AbstractBundle
     #[Override]
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        /** @var array{enums: array{output_dir: string, format: 'ts'|'js', paths: array<string, string>}, forms: array{output_dir: string, format: 'ts'|'js'}} $config */
+        /** @var array{enums: array{output_dir: string, format: 'ts'|'js', paths: array<string, string>}, constants: array{output_dir: string, format: 'ts'|'js', paths: array<string, string>}, forms: array{output_dir: string, format: 'ts'|'js'}} $config */
         $services = $container->services();
         $formAvailable = interface_exists(FormFactoryInterface::class);
 
@@ -115,6 +142,23 @@ final class SilarhiAppJsBundle extends AbstractBundle
                 service(EnumToJsPass::DUMPER),
                 service('silarhi_app_js.writer'),
                 $config['enums']['output_dir'],
+            ])
+            ->tag('console.command');
+
+        // The classes are services of the application's resources too: their definitions carry the attribute to the pass
+        $builder->registerAttributeForAutoconfiguration(ConstantsToJs::class, static function (ChildDefinition $definition, ConstantsToJs $attribute): void {
+            $definition->addTag(ConstantsToJsPass::TAG, null === $attribute->name ? [] : ['name' => $attribute->name]);
+        });
+
+        $builder->setParameter(ConstantsToJsPass::PATHS, $config['constants']['paths']);
+        $services->set(ConstantsToJsPass::DUMPER, ConstantsDumper::class)
+            ->arg('$classes', new AbstractArgument('set by ConstantsToJsPass'))
+            ->arg('$format', Format::from($config['constants']['format']));
+        $services->set('silarhi_app_js.command.dump_constants', DumpConstantsCommand::class)
+            ->args([
+                service(ConstantsToJsPass::DUMPER),
+                service('silarhi_app_js.writer'),
+                $config['constants']['output_dir'],
             ])
             ->tag('console.command');
 
