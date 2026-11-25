@@ -22,6 +22,7 @@ return RectorConfig::configure()
     ->withSkip([
         __DIR__ . '/tests/Fixtures/Dumper',
     ])
+    ->reportUnusedSkips()
     ->withPhpSets(php82: true)
     ->withPreparedSets(
         deadCode: true,
