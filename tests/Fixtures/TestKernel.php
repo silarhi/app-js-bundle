@@ -79,6 +79,12 @@ final class TestKernel extends Kernel
                 'format' => $format,
                 'paths' => $paths,
             ],
+            'constants' => [
+                'output_dir' => '%kernel.cache_dir%/app_js/constants',
+                'format' => $format,
+                // Its enum: registered by Symfony 7.3+ only
+                'paths' => [] === $paths ? [] : ['%kernel.project_dir%/tests/Fixtures/Constants' => 'Silarhi\\AppJsBundle\\Tests\\Fixtures\\Constants'],
+            ],
             'forms' => [
                 'output_dir' => '%kernel.cache_dir%/app_js/forms',
                 'format' => $format,
@@ -89,5 +95,6 @@ final class TestKernel extends Kernel
         $services = $container->services()->defaults()->autowire()->autoconfigure();
         $services->load('Silarhi\\AppJsBundle\\Tests\\Fixtures\\Enum\\', __DIR__ . '/Enum/*');
         $services->load('Silarhi\\AppJsBundle\\Tests\\Fixtures\\Form\\', __DIR__ . '/Form/*');
+        $services->load('Silarhi\\AppJsBundle\\Tests\\Fixtures\\Constants\\', __DIR__ . '/Constants/*');
     }
 }

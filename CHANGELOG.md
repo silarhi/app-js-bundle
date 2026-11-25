@@ -4,6 +4,16 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.0] - Unreleased
+
+### Added
+
+- `app-js:dump-constants` dumps the public constants of the classes marked `#[ConstantsToJs]` as TypeScript or
+  JavaScript modules (`export const MAX_SIZE = 2000000`), so a limit shared by a constraint and a page lives in one
+  place. Scalars, `null`, enum cases and arrays of them (frozen); `#[ConstantsToJs(name: ...)]` renames the module,
+  and the `constants` option sets `output_dir`, `format` and the `paths` scanned for the classes no resource loads.
+  `--check` fails when a file is out of date.
+
 ## [0.8.0] - 2026-11-19
 
 ### Added
@@ -94,6 +104,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.9.0]: https://github.com/silarhi/app-js-bundle/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/silarhi/app-js-bundle/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/silarhi/app-js-bundle/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/silarhi/app-js-bundle/compare/v0.5.0...v0.6.0
