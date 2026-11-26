@@ -18,6 +18,9 @@ Status]`, a JSDoc `@typedef` for `format: js`), and `#[EnumToJs(methods: ['label
   message as its key. A method that is not public, is static or takes a required parameter fails the container build.
 - `load_page()` passes a form view as its id, a date in ISO 8601, an enum case as its value (its name for a unit enum),
   and translates a translatable message, at any depth of the params.
+- `FormViolations::collect($form)` and `FormViolationsResponse` (a 422 JSON response): the errors of a form keyed by
+  the paths `formView()` reads (`phones.0.number`, `''` for the form itself), for `postForm()` of
+  `@silarhi/app-js/http`.
 
 ### Changed
 

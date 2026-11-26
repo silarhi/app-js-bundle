@@ -40,7 +40,8 @@
 - `app-js:dump-enums`, the PHP enums marked `#[EnumToJs]` as TypeScript or JavaScript modules;
 - `app-js:dump-constants`, the public constants of the classes marked `#[ConstantsToJs]`, so a limit lives in one place;
 - `app-js:dump-forms`, the shape of the form types marked `#[FormToJs]`, for `formView<Shape>()` to check form paths
-  and choice values when compiling.
+  and choice values when compiling;
+- `FormViolations` and `FormViolationsResponse`, the errors of a form keyed by the paths `formView()` reads.
 
 ## Install
 
@@ -384,6 +385,42 @@ bin/console app-js:dump-forms --check --strict
 ```
 
 `--check` fails when a file would change, without writing it; `--strict` fails on the warnings.
+
+## Form errors
+
+A form submitted through `postForm()` of `@silarhi/app-js/http` gets its errors back by the paths `formView()` reads:
+
+```php
+use Silarhi\AppJsBundle\Http\FormViolationsResponse;
+
+if ($form->isSubmitted() && !$form->isValid()) {
+    return new FormViolationsResponse($form); // a 422
+}
+```
+
+```json
+{
+    "violations": [
+        { "path": "", "message": "…" },
+        { "path": "phones.0.number", "message": "This value is not valid." }
+    ]
+}
+```
+
+```ts
+import { formView, showViolations } from '@silarhi/app-js/form'
+import { postForm, violationsOf } from '@silarhi/app-js/http'
+
+try {
+    await postForm(element.action, element)
+} catch (error) {
+    // is-invalid and invalid-feedback on each field, the errors of the form itself first in it
+    clear = showViolations(formView(element), violationsOf(error))
+}
+```
+
+The path of an error is the one of the form it is attached to, the root form's name left out; `''` holds the errors of
+the form itself. `FormViolations::collect($form)` gives the same list, for a response of your own.
 
 ## License
 
