@@ -31,9 +31,6 @@ use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 use UnitEnum;
 
-/**
- * @internal
- */
 final class AppJsExtension extends AbstractExtension
 {
     public function __construct(private readonly ?TranslatorInterface $translator = null)

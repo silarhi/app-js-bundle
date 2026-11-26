@@ -4,6 +4,21 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.11.0] - Unreleased
+
+### Added
+
+- `EnumDumper::fromDirectories()` and `ConstantsDumper::fromDirectories()`: the enums and the classes marked
+  `#[EnumToJs]` and `#[ConstantsToJs]` in directories, found and checked as the bundle does, for an application
+  without it. `EnumDumper`, `ConstantsDumper`, `GeneratedFilesWriter`, `AppJsExtension` and the `app-js:dump`,
+  `app-js:dump-enums` and `app-js:dump-constants` commands are public API, to be built by hand.
+
+### Changed
+
+- `symfony/config`, `symfony/dependency-injection` and `symfony/http-kernel` are no longer required: only the bundle
+  class and its compiler passes use them, and a kernel always has them (`conflict` keeps them at 6.4+). `psr/container`
+  is required instead, for the locator of the form variants.
+
 ## [0.10.0] - 2026-11-26
 
 ### Added
@@ -130,6 +145,7 @@ Status]`, a JSDoc `@typedef` for `format: js`), and `#[EnumToJs(methods: ['label
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.11.0]: https://github.com/silarhi/app-js-bundle/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/silarhi/app-js-bundle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/silarhi/app-js-bundle/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/silarhi/app-js-bundle/compare/v0.7.0...v0.8.0

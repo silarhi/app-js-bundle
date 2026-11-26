@@ -58,6 +58,39 @@ return [
 ];
 ```
 
+### Without the bundle
+
+The bundle class is optional: an application without the framework, `symfony/dependency-injection` or
+`symfony/http-kernel` builds the dumpers and the commands by hand. `fromDirectories()` finds the enums and the classes
+marked `#[EnumToJs]` and `#[ConstantsToJs]` the way the bundle does, from directories and their namespace prefix:
+
+```php
+use Silarhi\AppJsBundle\Command\DumpCommand;
+use Silarhi\AppJsBundle\Command\DumpConstantsCommand;
+use Silarhi\AppJsBundle\Command\DumpEnumsCommand;
+use Silarhi\AppJsBundle\Constants\ConstantsDumper;
+use Silarhi\AppJsBundle\Enum\EnumDumper;
+use Silarhi\AppJsBundle\Twig\AppJsExtension;
+use Silarhi\AppJsBundle\Writer\Format;
+use Silarhi\AppJsBundle\Writer\GeneratedFilesWriter;
+
+$writer = new GeneratedFilesWriter();
+$enumDumper = EnumDumper::fromDirectories([__DIR__ . '/src/Enum' => 'App\\Enum'], Format::JavaScript);
+$constantsDumper = ConstantsDumper::fromDirectories([__DIR__ . '/src/Model' => 'App\\Model'], Format::JavaScript);
+
+$application->addCommands([
+    new DumpEnumsCommand($enumDumper, $writer, __DIR__ . '/assets/js/enums'),
+    new DumpConstantsCommand($constantsDumper, $writer, __DIR__ . '/assets/js/constants'),
+    new DumpCommand(), // app-js:dump runs the dumps registered in the same application
+]);
+
+$twig->addExtension(new AppJsExtension($translator)); // load_page(), the translator is optional
+```
+
+`fromDirectories()` loads every file of the directories, and throws the errors the bundle reports when the container
+builds: two modules with the same name, an `#[EnumToJs]` method that is not public, is static or takes a required
+parameter.
+
 ## Pages
 
 ```twig

@@ -27,9 +27,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-/**
- * @internal
- */
 #[AsCommand(
     name: 'app-js:dump-constants',
     description: 'Dump the public constants of the classes marked #[ConstantsToJs] as TypeScript or JavaScript modules',

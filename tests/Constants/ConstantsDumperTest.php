@@ -95,6 +95,17 @@ final class ConstantsDumperTest extends TestCase
         self::assertSame([], (new ConstantsDumper(['Internals' => Internals::class]))->getFiles());
     }
 
+    public function testFindsTheMarkedClassesOfDirectories(): void
+    {
+        $dumper = ConstantsDumper::fromDirectories([
+            __DIR__ . '/../Fixtures/Constants' => 'Silarhi\\AppJsBundle\\Tests\\Fixtures\\Constants',
+            __DIR__ . '/../missing' => 'App\\Missing',
+        ]);
+
+        $expected = new ConstantsDumper(['Format' => FormatEnum::class, 'Internals' => Internals::class, 'Limits' => SearchLimits::class, 'Upload' => Upload::class]);
+        self::assertSame($expected->getFiles(), $dumper->getFiles());
+    }
+
     private function createDumper(Format $format = Format::TypeScript): ConstantsDumper
     {
         return new ConstantsDumper(['Format' => FormatEnum::class, 'Limits' => SearchLimits::class, 'Upload' => Upload::class], $format);

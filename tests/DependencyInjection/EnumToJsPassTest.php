@@ -17,6 +17,7 @@ use function dirname;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\DependencyInjection\EnumToJsPass;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Kind;
@@ -31,6 +32,11 @@ use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 
+/**
+ * Needs symfony/config and symfony/dependency-injection: the "PHPUnit without the bundle dependencies" CI job removes
+ * both and excludes this group.
+ */
+#[Group('bundle')]
 final class EnumToJsPassTest extends TestCase
 {
     public function testCollectsTheTaggedEnumsByName(): void
