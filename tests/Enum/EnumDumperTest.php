@@ -121,6 +121,30 @@ final class EnumDumperTest extends TestCase
         self::assertSame([], (new EnumDumper(['Placeholder' => Placeholder::class]))->getFiles());
     }
 
+    public function testFindsTheMarkedEnumsOfDirectories(): void
+    {
+        $dumper = EnumDumper::fromDirectories([
+            __DIR__ . '/../Fixtures/Enum' => 'Silarhi\\AppJsBundle\\Tests\\Fixtures\\Enum',
+            __DIR__ . '/../missing' => 'App\\Missing',
+        ], Format::JavaScript);
+
+        $expected = new EnumDumper(
+            ['Kind' => Kind::class, 'Placeholder' => Placeholder::class, 'Status' => Status::class, 'Vat' => VatRate::class],
+            Format::JavaScript,
+            ['Status' => ['label', 'isFinal']],
+        );
+        self::assertSame($expected->getFiles(), $dumper->getFiles());
+        self::assertSame('js', $dumper->getExtension());
+    }
+
+    public function testRefusesTheDirectoriesOfAnEnumWithAMethodItCannotCall(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must be public, not static, and take no required parameter.');
+
+        EnumDumper::fromDirectories([__DIR__ . '/../Fixtures/Invalid' => 'Silarhi\\AppJsBundle\\Tests\\Fixtures\\Invalid']);
+    }
+
     private function createDumper(Format $format = Format::TypeScript): EnumDumper
     {
         return new EnumDumper(['Kind' => Kind::class, 'Status' => Status::class, 'Vat' => VatRate::class], $format);

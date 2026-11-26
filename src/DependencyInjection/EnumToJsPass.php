@@ -21,14 +21,14 @@ use function is_string;
 use Override;
 use ReflectionClass;
 use Silarhi\AppJsBundle\Attribute\EnumToJs;
+use Silarhi\AppJsBundle\Enum\EnumCollector;
+use Silarhi\AppJsBundle\Finder\MarkedClassFinder;
 
 use function sprintf;
 
 use Symfony\Component\Config\Resource\DirectoryResource;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\Finder\Finder;
-use UnitEnum;
 
 /**
  * Gives app-js:dump-enums the enums marked #[EnumToJs], found two ways:
@@ -52,60 +52,24 @@ final class EnumToJsPass implements CompilerPassInterface
             return;
         }
 
-        $enums = [];
-        $methods = [];
-        foreach ([...$this->findTaggedEnums($container), ...$this->findScannedEnums($container)] as [$class, $name]) {
-            if (isset($enums[$name]) && $enums[$name] !== $class) {
-                throw new InvalidArgumentException(sprintf('The enums "%s" and "%s" are both dumped as "%s": give one a name.', $enums[$name], $class, $name));
-            }
-
-            $enums[$name] = $class;
-            $enumMethods = $this->getMethods($container, $class);
-            if ([] !== $enumMethods) {
-                $methods[$name] = $enumMethods;
-            }
+        $collector = new EnumCollector();
+        foreach ($this->findTaggedEnums($container) as [$enum, $name]) {
+            $collector->add($enum, $name);
         }
 
-        ksort($enums);
-        ksort($methods);
+        foreach ($this->findScannedEnums($container) as [$enum, $attribute]) {
+            if ($enum->isEnum()) {
+                $collector->add($enum, $attribute->name);
+            }
+        }
 
         $container->getDefinition(self::DUMPER)
-            ->replaceArgument('$enums', $enums)
-            ->replaceArgument('$methods', $methods);
+            ->replaceArgument('$enums', $collector->getEnums())
+            ->replaceArgument('$methods', $collector->getMethods());
     }
 
     /**
-     * The methods of #[EnumToJs(methods: [...])], checked: each one is called on every case by the dump.
-     *
-     * @param class-string<UnitEnum> $enum
-     *
-     * @return list<string>
-     */
-    private function getMethods(ContainerBuilder $container, string $enum): array
-    {
-        $reflection = $container->getReflectionClass($enum, false);
-        $attribute = $reflection?->getAttributes(EnumToJs::class)[0] ?? null;
-        if (!$reflection instanceof ReflectionClass || null === $attribute) {
-            return [];
-        }
-
-        $methods = $attribute->newInstance()->methods;
-        foreach ($methods as $method) {
-            if (!$reflection->hasMethod($method)) {
-                throw new InvalidArgumentException(sprintf('The #[EnumToJs] method "%s" of "%s" does not exist.', $method, $enum));
-            }
-
-            $reflectionMethod = $reflection->getMethod($method);
-            if (!$reflectionMethod->isPublic() || $reflectionMethod->isStatic() || $reflectionMethod->getNumberOfRequiredParameters() > 0) {
-                throw new InvalidArgumentException(sprintf('The #[EnumToJs] method "%s::%s()" must be public, not static, and take no required parameter.', $enum, $method));
-            }
-        }
-
-        return $methods;
-    }
-
-    /**
-     * @return list<array{class-string<UnitEnum>, string}> each enum with its module name
+     * @return list<array{ReflectionClass<object>, string|null}> each enum with its module name, when the tag gives one
      */
     private function findTaggedEnums(ContainerBuilder $container): array
     {
@@ -118,20 +82,20 @@ final class EnumToJsPass implements CompilerPassInterface
             }
 
             $class = $container->getParameterBag()->resolveValue($definition->getClass() ?? $id);
-            if (!is_string($class) || !enum_exists($class)) {
+            $reflection = is_string($class) && enum_exists($class) ? $container->getReflectionClass($class, false) : null;
+            if (!$reflection instanceof ReflectionClass) {
                 throw new InvalidArgumentException(sprintf('#[EnumToJs] marks enums only, "%s" is not one.', is_string($class) ? $class : $id));
             }
 
             $attributes = $tags[0] ?? [];
-            $name = is_array($attributes) && is_string($attributes['name'] ?? null) ? $attributes['name'] : null;
-            $enums[] = [$class, $name ?? (new ReflectionClass($class))->getShortName()];
+            $enums[] = [$reflection, is_array($attributes) && is_string($attributes['name'] ?? null) ? $attributes['name'] : null];
         }
 
         return $enums;
     }
 
     /**
-     * @return list<array{class-string<UnitEnum>, string}> each enum with its module name
+     * @return list<array{ReflectionClass<object>, EnumToJs}>
      */
     private function findScannedEnums(ContainerBuilder $container): array
     {
@@ -140,28 +104,13 @@ final class EnumToJsPass implements CompilerPassInterface
             return [];
         }
 
-        $enums = [];
-        foreach ($paths as $directory => $namespace) {
-            if (!is_string($directory) || !is_string($namespace) || !is_dir($directory)) {
-                continue;
-            }
-
+        foreach (array_keys($paths) as $directory) {
             // A new file in the directory rebuilds the container
-            $container->addResource(new DirectoryResource($directory, '/\.php$/'));
-            foreach ((new Finder())->files()->in($directory)->name('*.php')->sortByName() as $file) {
-                $class = rtrim($namespace, '\\') . '\\' . str_replace('/', '\\', substr($file->getRelativePathname(), 0, -4));
-                $reflection = $container->getReflectionClass($class, false);
-                $attribute = $reflection?->getAttributes(EnumToJs::class)[0] ?? null;
-                if (!$reflection instanceof ReflectionClass || null === $attribute || !$reflection->isEnum()) {
-                    continue;
-                }
-
-                /** @var class-string<UnitEnum> $enum */
-                $enum = $reflection->getName();
-                $enums[] = [$enum, $attribute->newInstance()->name ?? $reflection->getShortName()];
+            if (is_string($directory) && is_dir($directory)) {
+                $container->addResource(new DirectoryResource($directory, '/\.php$/'));
             }
         }
 
-        return $enums;
+        return MarkedClassFinder::find($paths, EnumToJs::class, static fn (string $class): ?ReflectionClass => $container->getReflectionClass($class, false));
     }
 }

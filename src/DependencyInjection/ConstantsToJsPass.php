@@ -21,13 +21,14 @@ use function is_string;
 use Override;
 use ReflectionClass;
 use Silarhi\AppJsBundle\Attribute\ConstantsToJs;
+use Silarhi\AppJsBundle\Constants\ConstantsCollector;
+use Silarhi\AppJsBundle\Finder\MarkedClassFinder;
 
 use function sprintf;
 
 use Symfony\Component\Config\Resource\DirectoryResource;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\Finder\Finder;
 
 /**
  * Gives app-js:dump-constants the classes marked #[ConstantsToJs], found two ways:
@@ -52,22 +53,20 @@ final class ConstantsToJsPass implements CompilerPassInterface
             return;
         }
 
-        $classes = [];
-        foreach ([...$this->findTaggedClasses($container), ...$this->findScannedClasses($container)] as [$class, $name]) {
-            if (isset($classes[$name]) && $classes[$name] !== $class) {
-                throw new InvalidArgumentException(sprintf('The classes "%s" and "%s" both dump their constants as "%s": give one a name.', $classes[$name], $class, $name));
-            }
-
-            $classes[$name] = $class;
+        $collector = new ConstantsCollector();
+        foreach ($this->findTaggedClasses($container) as [$class, $name]) {
+            $collector->add($class, $name);
         }
 
-        ksort($classes);
+        foreach ($this->findScannedClasses($container) as [$class, $attribute]) {
+            $collector->add($class, $attribute->name);
+        }
 
-        $container->getDefinition(self::DUMPER)->replaceArgument('$classes', $classes);
+        $container->getDefinition(self::DUMPER)->replaceArgument('$classes', $collector->getClasses());
     }
 
     /**
-     * @return list<array{class-string, string}> each class with its module name
+     * @return list<array{ReflectionClass<object>, string|null}> each class with its module name, when the tag gives one
      */
     private function findTaggedClasses(ContainerBuilder $container): array
     {
@@ -86,15 +85,14 @@ final class ConstantsToJsPass implements CompilerPassInterface
             }
 
             $attributes = $tags[0] ?? [];
-            $name = is_array($attributes) && is_string($attributes['name'] ?? null) ? $attributes['name'] : null;
-            $classes[] = [$reflection->getName(), $name ?? $reflection->getShortName()];
+            $classes[] = [$reflection, is_array($attributes) && is_string($attributes['name'] ?? null) ? $attributes['name'] : null];
         }
 
         return $classes;
     }
 
     /**
-     * @return list<array{class-string, string}> each class with its module name
+     * @return list<array{ReflectionClass<object>, ConstantsToJs}>
      */
     private function findScannedClasses(ContainerBuilder $container): array
     {
@@ -103,26 +101,13 @@ final class ConstantsToJsPass implements CompilerPassInterface
             return [];
         }
 
-        $classes = [];
-        foreach ($paths as $directory => $namespace) {
-            if (!is_string($directory) || !is_string($namespace) || !is_dir($directory)) {
-                continue;
-            }
-
+        foreach (array_keys($paths) as $directory) {
             // A new file in the directory rebuilds the container
-            $container->addResource(new DirectoryResource($directory, '/\.php$/'));
-            foreach ((new Finder())->files()->in($directory)->name('*.php')->sortByName() as $file) {
-                $class = rtrim($namespace, '\\') . '\\' . str_replace('/', '\\', substr($file->getRelativePathname(), 0, -4));
-                $reflection = $container->getReflectionClass($class, false);
-                $attribute = $reflection?->getAttributes(ConstantsToJs::class)[0] ?? null;
-                if (!$reflection instanceof ReflectionClass || null === $attribute) {
-                    continue;
-                }
-
-                $classes[] = [$reflection->getName(), $attribute->newInstance()->name ?? $reflection->getShortName()];
+            if (is_string($directory) && is_dir($directory)) {
+                $container->addResource(new DirectoryResource($directory, '/\.php$/'));
             }
         }
 
-        return $classes;
+        return MarkedClassFinder::find($paths, ConstantsToJs::class, static fn (string $class): ?ReflectionClass => $container->getReflectionClass($class, false));
     }
 }

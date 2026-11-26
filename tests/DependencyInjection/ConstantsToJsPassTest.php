@@ -16,6 +16,7 @@ namespace Silarhi\AppJsBundle\Tests\DependencyInjection;
 use function dirname;
 
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\DependencyInjection\ConstantsToJsPass;
 use Silarhi\AppJsBundle\Tests\Fixtures\Constants\Format;
@@ -27,6 +28,11 @@ use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 
+/**
+ * Needs symfony/config and symfony/dependency-injection: the "PHPUnit without the bundle dependencies" CI job removes
+ * both and excludes this group.
+ */
+#[Group('bundle')]
 final class ConstantsToJsPassTest extends TestCase
 {
     public function testCollectsTheTaggedClassesByName(): void

@@ -20,6 +20,8 @@ use function is_int;
 
 use LogicException;
 use ReflectionMethod;
+use Silarhi\AppJsBundle\Attribute\EnumToJs;
+use Silarhi\AppJsBundle\Finder\MarkedClassFinder;
 use Silarhi\AppJsBundle\Writer\Format;
 use Silarhi\AppJsBundle\Writer\Literal;
 use Silarhi\AppJsBundle\Writer\TypeScript;
@@ -46,8 +48,6 @@ use UnitEnum;
  *     export const LABEL = Object.freeze({
  *         draft: 'status.draft',
  *     })
- *
- * @internal
  */
 final readonly class EnumDumper
 {
@@ -60,6 +60,25 @@ final readonly class EnumDumper
         private Format $format = Format::TypeScript,
         private array $methods = [],
     ) {
+    }
+
+    /**
+     * The dumper of the enums marked #[EnumToJs] in directories: what the bundle finds, for an application without it.
+     *
+     * @param array<string, string> $paths the directories, with their namespace prefix (`['/app/src/Enum' => 'App\\Enum']`)
+     *
+     * @throws InvalidArgumentException when two enums have the same module name, or a dumped method cannot be called
+     */
+    public static function fromDirectories(array $paths, Format $format = Format::TypeScript): self
+    {
+        $collector = new EnumCollector();
+        foreach (MarkedClassFinder::find($paths, EnumToJs::class) as [$enum, $attribute]) {
+            if ($enum->isEnum()) {
+                $collector->add($enum, $attribute->name);
+            }
+        }
+
+        return new self($collector->getEnums(), $format, $collector->getMethods());
     }
 
     /** The extension of the dumped files: ts or js. */

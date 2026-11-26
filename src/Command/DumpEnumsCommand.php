@@ -27,9 +27,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-/**
- * @internal
- */
 #[AsCommand(
     name: 'app-js:dump-enums',
     description: 'Dump the enums marked #[EnumToJs] as TypeScript or JavaScript modules',

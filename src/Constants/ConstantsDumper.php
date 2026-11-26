@@ -16,6 +16,8 @@ namespace Silarhi\AppJsBundle\Constants;
 use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionClassConstant;
+use Silarhi\AppJsBundle\Attribute\ConstantsToJs;
+use Silarhi\AppJsBundle\Finder\MarkedClassFinder;
 use Silarhi\AppJsBundle\Writer\Format;
 use Silarhi\AppJsBundle\Writer\Literal;
 
@@ -32,8 +34,6 @@ use function strlen;
  *
  * A constant holding an enum case gives its value (its name for a unit enum). Any other object is refused: it has no
  * JavaScript literal.
- *
- * @internal
  */
 final readonly class ConstantsDumper
 {
@@ -44,6 +44,24 @@ final readonly class ConstantsDumper
         private array $classes,
         private Format $format = Format::TypeScript,
     ) {
+    }
+
+    /**
+     * The dumper of the classes marked #[ConstantsToJs] in directories: what the bundle finds, for an application
+     * without it.
+     *
+     * @param array<string, string> $paths the directories, with their namespace prefix (`['/app/src/Model' => 'App\\Model']`)
+     *
+     * @throws InvalidArgumentException when two classes have the same module name
+     */
+    public static function fromDirectories(array $paths, Format $format = Format::TypeScript): self
+    {
+        $collector = new ConstantsCollector();
+        foreach (MarkedClassFinder::find($paths, ConstantsToJs::class) as [$class, $attribute]) {
+            $collector->add($class, $attribute->name);
+        }
+
+        return new self($collector->getClasses(), $format);
     }
 
     /** The extension of the dumped files: ts or js. */

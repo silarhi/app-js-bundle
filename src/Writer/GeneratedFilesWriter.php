@@ -19,8 +19,6 @@ use Symfony\Component\Finder\Finder;
 /**
  * Keeps a directory of generated files equal to what a dumper returns: writes the files that changed, removes the ones
  * with its extension it no longer returns. The directory belongs to the dumper.
- *
- * @internal
  */
 final readonly class GeneratedFilesWriter
 {

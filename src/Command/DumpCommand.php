@@ -24,8 +24,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Runs every dump: the enums, the constants and the form shapes (when symfony/form is enabled).
- *
- * @internal
  */
 #[AsCommand(
     name: 'app-js:dump',

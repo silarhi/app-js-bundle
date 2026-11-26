@@ -15,6 +15,7 @@ namespace Silarhi\AppJsBundle\Tests\DependencyInjection;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\DependencyInjection\FormToJsPass;
 use Silarhi\AppJsBundle\Form\Variant\MatrixFormVariantProvider;
@@ -32,6 +33,11 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 
+/**
+ * Needs symfony/config and symfony/dependency-injection: the "PHPUnit without the bundle dependencies" CI job removes
+ * both and excludes this group.
+ */
+#[Group('bundle')]
 final class FormToJsPassTest extends TestCase
 {
     public function testCollectsTheMarkedFormTypes(): void
