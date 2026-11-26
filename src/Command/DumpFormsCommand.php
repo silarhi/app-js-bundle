@@ -47,7 +47,7 @@ final class DumpFormsCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addOption('check', null, InputOption::VALUE_NONE, 'Fail when a file is out of date, without writing it')
+            ->addOption('check', null, InputOption::VALUE_NONE, 'Fail when a file is out of date, without writing it (-v shows the diff)')
             ->addOption('strict', null, InputOption::VALUE_NONE, 'Fail on the warnings of forms whose shape may miss fields');
     }
 
@@ -72,6 +72,12 @@ final class DumpFormsCommand extends Command
             $changes = $this->writer->getChanges($this->outputDirectory, $dump->files, $this->formShapeDumper->getExtension());
             if ([] !== $changes) {
                 $io->listing($changes);
+                if ($io->isVerbose()) {
+                    foreach ($changes as $path) {
+                        // Raw: a type argument is no console tag
+                        $io->writeln($this->writer->getDiff($this->outputDirectory, $path, $dump->files[$path] ?? null), OutputInterface::OUTPUT_RAW);
+                    }
+                }
                 $io->error(sprintf('%d form file(s) out of date in "%s": run app-js:dump-forms.', count($changes), $this->outputDirectory));
 
                 return Command::FAILURE;

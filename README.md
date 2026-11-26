@@ -384,7 +384,8 @@ bin/console app-js:dump-constants --check
 bin/console app-js:dump-forms --check --strict
 ```
 
-`--check` fails when a file would change, without writing it; `--strict` fails on the warnings.
+`--check` fails when a file would change, without writing it, and lists those files; with `-v`, it shows their
+diff. `--strict` fails on the warnings.
 
 ## Form errors
 

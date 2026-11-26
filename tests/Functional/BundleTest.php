@@ -159,6 +159,19 @@ final class BundleTest extends KernelTestCase
         self::assertStringContainsString("export const IS_FINAL = Object.freeze({\n    draft: false,\n", $status);
     }
 
+    public function testCheckShowsTheDiffWhenVerbose(): void
+    {
+        $this->executeCommand('app-js:dump-forms')->assertCommandIsSuccessful();
+        $file = self::$kernel?->getCacheDir() . '/app_js/forms/PhoneForm.ts';
+        file_put_contents($file, str_replace('number: FormField<HTMLInputElement, string>', 'number: FormField', (string) file_get_contents($file)));
+
+        $display = $this->executeCommand('app-js:dump-forms', ['--check' => true], verbosity: OutputInterface::VERBOSITY_VERBOSE)->getDisplay();
+
+        self::assertStringContainsString("--- a/PhoneForm.ts\n+++ b/PhoneForm.ts\n", $display);
+        self::assertStringContainsString("-    number: FormField\n+    number: FormField<HTMLInputElement, string>\n", $display);
+        self::assertStringNotContainsString('--- a/', $this->executeCommand('app-js:dump-forms', ['--check' => true])->getDisplay());
+    }
+
     public function testRendersLoadPage(): void
     {
         self::bootKernel();
