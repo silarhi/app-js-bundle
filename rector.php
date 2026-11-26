@@ -12,6 +12,7 @@ declare(strict_types=1);
  */
 
 use Rector\Config\RectorConfig;
+use Rector\Symfony\Symfony73\Rector\Class_\GetFiltersAndFunctionsToAsTwigAttributeRector;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -21,8 +22,12 @@ return RectorConfig::configure()
     // Their listeners are callables of every kind on purpose: no first-class callable conversion, no dead code removal
     ->withSkip([
         __DIR__ . '/tests/Fixtures/Dumper',
+        // The bundle tags its Twig extension twig.extension itself, and #[AsTwigFunction] needs Symfony 7.3+
+        GetFiltersAndFunctionsToAsTwigAttributeRector::class,
     ])
-    ->withPhpSets(php82: true)
+    ->reportUnusedSkips()
+    ->withPhpSets()
+    ->withComposerBased()
     ->withPreparedSets(
         deadCode: true,
         codeQuality: true,
