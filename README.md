@@ -40,7 +40,7 @@
 - `app-js:dump-enums`, the PHP enums marked `#[EnumToJs]` as TypeScript or JavaScript modules;
 - `app-js:dump-constants`, the public constants of the classes marked `#[ConstantsToJs]`, so a limit lives in one place;
 - `app-js:dump-forms`, the shape of the form types marked `#[FormToJs]`, for `formView<Shape>()` to check form paths
-  when compiling.
+  and choice values when compiling.
 
 ## Install
 
@@ -204,7 +204,8 @@ import type { FormCollection, FormField } from '@silarhi/app-js/form'
 export interface PartyForm {
     name: FormField<HTMLInputElement, string>
     country: FormField<HTMLSelectElement, string | null>
-    tags: FormField<HTMLElement, string[]>
+    status: FormField<HTMLSelectElement, 'draft' | 'active' | null>
+    tags: FormField<HTMLElement, ('work' | 'home')[]>
     address: {
         street: FormField<HTMLInputElement, string>
         city: FormField<HTMLInputElement, string>
@@ -224,7 +225,8 @@ const form = formView<PartyForm>(container.querySelector('form'))
 form.get('phones.0.number')
 form.get('adress.city') // TS2345
 form.get('country').element // HTMLSelectElement | null
-form.field('tags').value // string[]
+form.field('tags').value // ('work' | 'home')[]
+form.field('status').setValue('actve') // TS2345
 ```
 
 The shape is read from the form view, as `formView()` reads the DOM: embedded forms are nested objects, collections
@@ -233,7 +235,11 @@ take the shape of their prototype and rendered items, expanded choices are one f
 A field names the element it is rendered as and the value `field().value` reads, from the core type it extends:
 
 1. a choice (an entity, an enum, a country) is an `HTMLSelectElement` read as `string | null`, or `string[]` when
-   multiple; expanded, the container of its options read as `string`, or `string[]` when multiple;
+   multiple; expanded, the container of its options read as `string`, or `string[]` when multiple. Each `string` is
+   the union of the values of its options when the form renders them all: an enum or a list of choices
+   (`'draft' | 'active' | null`), `''` included when a placeholder option is rendered. An entity, whose values are ids
+   from the database, the Intl lists (country, currency, language, locale, timezone) and the selects of a date or a
+   time, whose years follow the current one, stay `string`;
 2. a checkbox is read as a `boolean`, a radio as `string | undefined` (the checked value of its group);
 3. a textarea and the other core types rendered as an input are read as a `string`; a button has no value.
 

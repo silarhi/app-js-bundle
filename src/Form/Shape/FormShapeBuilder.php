@@ -17,6 +17,8 @@ use function in_array;
 use function is_array;
 use function is_string;
 
+use Symfony\Component\Form\ChoiceList\View\ChoiceGroupView;
+use Symfony\Component\Form\ChoiceList\View\ChoiceView;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 
@@ -54,6 +56,15 @@ final class FormShapeBuilder
     ];
 
     /**
+     * The choice types whose values are not typed: entity ids come from the database, the dump must give the same
+     * files on every machine; the Intl lists are long and follow the ICU data.
+     */
+    private const UNTYPED_CHOICES = ['entity', 'document', 'country', 'currency', 'language', 'locale', 'timezone'];
+
+    /** The types whose choice widgets are not typed: the years of a date follow the current one */
+    private const UNTYPED_CHOICE_PARENTS = ['date', 'dateinterval', 'time', 'week'];
+
+    /**
      * @param FormInterface<mixed>|null $form the form of the view
      */
     public function build(FormView $view, ?FormInterface $form = null): ShapeNode
@@ -69,7 +80,7 @@ final class FormShapeBuilder
         $expandedChoice = in_array('choice', $prefixes, true) && true === ($view->vars['expanded'] ?? false);
         if ($expandedChoice) {
             // Its element is the container of the options, its value the ones checked
-            return ShapeNode::field(value: $this->isMultiple($view) ? 'string[]' : 'string');
+            return ShapeNode::field(value: $this->isMultiple($view) ? 'string[]' : 'string', choices: $this->getChoices($view, $prefixes));
         }
 
         if (true !== ($view->vars['compound'] ?? false)) {
@@ -122,12 +133,82 @@ final class FormShapeBuilder
             if ('choice' === $prefix) {
                 // No option selected reads as null
                 $value = $this->isMultiple($view) ? 'string[]' : 'string | null';
+
+                return ShapeNode::field($element, $value, $this->getChoices($view, $prefixes));
             }
 
             return ShapeNode::field($element, $value);
         }
 
         return ShapeNode::field();
+    }
+
+    /**
+     * The values of the options of a choice, in rendering order, the placeholder's empty value included.
+     *
+     * @param array<mixed> $prefixes
+     *
+     * @return list<string>|null null when its values are not typed
+     */
+    private function getChoices(FormView $view, array $prefixes): ?array
+    {
+        $parentPrefixes = $view->parent?->vars['block_prefixes'] ?? [];
+        if ($this->hasAnyPrefix($prefixes, self::UNTYPED_CHOICES) || (is_array($parentPrefixes) && $this->hasAnyPrefix($parentPrefixes, self::UNTYPED_CHOICE_PARENTS))) {
+            return null;
+        }
+
+        $choices = $view->vars['choices'] ?? [];
+        $values = $this->getChoiceValues(is_array($choices) ? $choices : []);
+        if ([] === $values) {
+            return null;
+        }
+
+        // A placeholder option is rendered: a select reads its empty value, and so does a radio group
+        if (null !== ($view->vars['placeholder'] ?? null) && !in_array('', $values, true)) {
+            $values[] = '';
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param array<mixed> $choices the ChoiceView of a choice, grouped in ChoiceGroupView
+     *
+     * @return list<string>
+     */
+    private function getChoiceValues(array $choices): array
+    {
+        $values = [];
+        foreach ($choices as $choice) {
+            $choiceValues = match (true) {
+                $choice instanceof ChoiceGroupView => $this->getChoiceValues($choice->choices),
+                $choice instanceof ChoiceView => [$choice->value],
+                default => [],
+            };
+
+            foreach ($choiceValues as $value) {
+                if (!in_array($value, $values, true)) {
+                    $values[] = $value;
+                }
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param array<mixed> $prefixes
+     * @param list<string> $names
+     */
+    private function hasAnyPrefix(array $prefixes, array $names): bool
+    {
+        foreach ($names as $name) {
+            if (in_array($name, $prefixes, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isMultiple(FormView $view): bool

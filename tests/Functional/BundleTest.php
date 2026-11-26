@@ -71,8 +71,8 @@ final class BundleTest extends KernelTestCase
 
             export interface UserForm {
                 name: FormField<HTMLInputElement, string>
-                size: FormField<HTMLElement, string>
-                tags: FormField<HTMLElement, string[]>
+                size: FormField<HTMLElement, 's' | 'm'>
+                tags: FormField<HTMLElement, 'a'[]>
                 address: AddressForm
                 billingAddress: {
                     street: FormField<HTMLInputElement, string>

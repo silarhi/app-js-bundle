@@ -8,10 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `app-js:dump-forms` types the value of a choice as the union of its options: `FormField<HTMLSelectElement, 'draft' |
+'active' | null>` for an enum or a list of choices, `('a' | 'b')[]` when multiple, `''` included when a placeholder
+  option is rendered. The variants' options are merged. Entities, the Intl lists and the selects of a date or a time
+  stay `string`. A long field type is broken over lines as Biome breaks it.
 - `app-js:dump-enums` exports the type of the values (`export type StatusValue = (typeof Status)[keyof typeof
 Status]`, a JSDoc `@typedef` for `format: js`), and `#[EnumToJs(methods: ['label', 'color'])]` dumps the results of
   those methods by case value (`export const LABEL = Object.freeze({ draft: 'status.draft' })`), a translatable
   message as its key. A method that is not public, is static or takes a required parameter fails the container build.
+
+### Changed
+
+- The dumped form shapes of choices with typed values change: run `app-js:dump-forms` once, and a page that compared a
+  choice with a value it does not have no longer compiles.
 
 ## [0.9.0] - 2026-11-25
 

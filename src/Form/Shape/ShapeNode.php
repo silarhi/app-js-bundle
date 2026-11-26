@@ -31,6 +31,7 @@ final readonly class ShapeNode
      * @param class-string|null        $formType the form type that built a form, null when unknown or when builds disagree
      * @param string|null              $element  the DOM class a field is rendered as (HTMLSelectElement), null when unknown or when builds disagree
      * @param string|null              $value    the TypeScript type a field is read as (string[]), null when unknown or when builds disagree
+     * @param list<string>|null        $choices  the values of the options of a choice, read in place of each string of $value, null when unknown
      */
     private function __construct(
         public ShapeKind $kind,
@@ -40,12 +41,16 @@ final readonly class ShapeNode
         public ?string $formType = null,
         public ?string $element = null,
         public ?string $value = null,
+        public ?array $choices = null,
     ) {
     }
 
-    public static function field(?string $element = null, ?string $value = null): self
+    /**
+     * @param list<string>|null $choices
+     */
+    public static function field(?string $element = null, ?string $value = null, ?array $choices = null): self
     {
-        return new self(ShapeKind::Field, element: $element, value: $value);
+        return new self(ShapeKind::Field, element: $element, value: $value, choices: $choices);
     }
 
     /**
@@ -109,7 +114,7 @@ final readonly class ShapeNode
         }
 
         if (ShapeKind::Field === $this->kind) {
-            return $this->element === $other->element && $this->value === $other->value;
+            return $this->element === $other->element && $this->value === $other->value && $this->choices === $other->choices;
         }
 
         if (ShapeKind::Collection === $this->kind) {
@@ -147,10 +152,7 @@ final readonly class ShapeNode
         }
 
         return match ($this->kind) {
-            ShapeKind::Field => self::field(
-                $this->element === $other->element ? $this->element : null,
-                $this->value === $other->value ? $this->value : null,
-            ),
+            ShapeKind::Field => $this->mergeField($other),
             ShapeKind::Collection => self::collection(match (true) {
                 !$this->item instanceof self => $other->item,
                 !$other->item instanceof self => $this->item,
@@ -158,6 +160,21 @@ final readonly class ShapeNode
             }),
             ShapeKind::Form => $this->mergeChildren($other, $path),
         };
+    }
+
+    /**
+     * A field one build renders as a select and another as a text is any element; one whose options differ reads any
+     * of them.
+     */
+    private function mergeField(self $other): self
+    {
+        $value = $this->value === $other->value ? $this->value : null;
+        $choices = null;
+        if (null !== $value && null !== $this->choices && null !== $other->choices) {
+            $choices = [...$this->choices, ...array_values(array_diff($other->choices, $this->choices))];
+        }
+
+        return self::field($this->element === $other->element ? $this->element : null, $value, $choices);
     }
 
     private function mergeChildren(self $other, string $path): self
