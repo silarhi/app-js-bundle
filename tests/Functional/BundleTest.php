@@ -149,6 +149,16 @@ final class BundleTest extends KernelTestCase
         self::assertStringContainsString('3 enum file(s) up to date.', $tester->getDisplay());
     }
 
+    public function testDumpsTheTypeAndTheMethodsOfAnEnum(): void
+    {
+        $this->executeCommand('app-js:dump-enums')->assertCommandIsSuccessful();
+
+        $status = (string) file_get_contents(self::$kernel?->getCacheDir() . '/app_js/enums/Status.ts');
+        self::assertStringContainsString("export type StatusValue = (typeof Status)[keyof typeof Status]\n", $status);
+        self::assertStringContainsString("export const LABEL = Object.freeze({\n    draft: 'status.Draft',\n", $status);
+        self::assertStringContainsString("export const IS_FINAL = Object.freeze({\n    draft: false,\n", $status);
+    }
+
     public function testRendersLoadPage(): void
     {
         self::bootKernel();

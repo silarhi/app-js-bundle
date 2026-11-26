@@ -136,6 +136,7 @@ final class SilarhiAppJsBundle extends AbstractBundle
         $builder->setParameter(EnumToJsPass::PATHS, $config['enums']['paths']);
         $services->set(EnumToJsPass::DUMPER, EnumDumper::class)
             ->arg('$enums', new AbstractArgument('set by EnumToJsPass'))
+            ->arg('$methods', new AbstractArgument('set by EnumToJsPass'))
             ->arg('$format', Format::from($config['enums']['format']));
         $services->set('silarhi_app_js.command.dump_enums', DumpEnumsCommand::class)
             ->args([

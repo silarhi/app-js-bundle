@@ -4,6 +4,15 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.10.0] - Unreleased
+
+### Added
+
+- `app-js:dump-enums` exports the type of the values (`export type StatusValue = (typeof Status)[keyof typeof
+Status]`, a JSDoc `@typedef` for `format: js`), and `#[EnumToJs(methods: ['label', 'color'])]` dumps the results of
+  those methods by case value (`export const LABEL = Object.freeze({ draft: 'status.draft' })`), a translatable
+  message as its key. A method that is not public, is static or takes a required parameter fails the container build.
+
 ## [0.9.0] - 2026-11-25
 
 ### Added
@@ -104,6 +113,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.10.0]: https://github.com/silarhi/app-js-bundle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/silarhi/app-js-bundle/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/silarhi/app-js-bundle/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/silarhi/app-js-bundle/compare/v0.6.0...v0.7.0

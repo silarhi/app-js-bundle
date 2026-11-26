@@ -93,10 +93,50 @@ const LeaseStatus = Object.freeze({
     Active: 'active',
 })
 export default LeaseStatus
+
+export type LeaseStatusValue = (typeof LeaseStatus)[keyof typeof LeaseStatus]
 ```
 
 Only the enums marked `#[EnumToJs]` are dumped (`#[EnumToJs(name: 'Status')]` renames the module). Unit enums take
-their case names as values.
+their case names as values. `LeaseStatusValue` is the union of the values (`'draft' | 'active'`); with `format: js`, it
+is a JSDoc `@typedef`.
+
+The results of the methods named in `methods` are dumped too, one map per method, by case value, so the page reads the
+label or the color of a value it got:
+
+```php
+#[EnumToJs(methods: ['label', 'color'])]
+enum LeaseStatus: string
+{
+    // ...
+
+    public function label(): TranslatableMessage
+    {
+        return t('lease_status.' . $this->value);
+    }
+
+    public function color(): string
+    {
+        return self::Active === $this ? 'success' : 'secondary';
+    }
+}
+```
+
+```ts
+export const LABEL = Object.freeze({
+    draft: 'lease_status.draft',
+    active: 'lease_status.active',
+})
+
+export const COLOR = Object.freeze({
+    draft: 'secondary',
+    active: 'success',
+})
+```
+
+A method is public, not static, and takes no required parameter; its export is its name in upper snake case. A result
+is dumped as a constant is (see [Constants](#constants)), and a translatable message as its key, for the page's
+translator: the dump never depends on the locale.
 
 On Symfony 7.3+, the bundle finds them through autoconfiguration, wherever they live: an enum must be loaded by a
 service resource of the application, as the default `App\` resource of `config/services.yaml` loads `src/`, and not

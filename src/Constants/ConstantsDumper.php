@@ -13,26 +13,14 @@ declare(strict_types=1);
 
 namespace Silarhi\AppJsBundle\Constants;
 
-use BackedEnum;
 use InvalidArgumentException;
-
-use function is_array;
-use function is_bool;
-use function is_float;
-use function is_int;
-use function is_string;
-
-use const JSON_THROW_ON_ERROR;
-
 use ReflectionClass;
 use ReflectionClassConstant;
 use Silarhi\AppJsBundle\Writer\Format;
-use Silarhi\AppJsBundle\Writer\TypeScript;
+use Silarhi\AppJsBundle\Writer\Literal;
 
 use function sprintf;
 use function strlen;
-
-use UnitEnum;
 
 /**
  * One module per class (TypeScript or JavaScript: the same code): an export per public constant, in their order, the
@@ -49,9 +37,6 @@ use UnitEnum;
  */
 final readonly class ConstantsDumper
 {
-    /** Biome's line width: a longer array is written one item per line, as Biome would reformat it */
-    private const LINE_WIDTH = 120;
-
     /**
      * @param array<string, class-string> $classes the classes marked #[ConstantsToJs], by module name
      */
@@ -101,57 +86,9 @@ final readonly class ConstantsDumper
         $prefix = sprintf('export const %s = ', $constant->getName());
 
         try {
-            return $prefix . $this->literal($constant->getValue(), strlen($prefix), 0);
+            return $prefix . Literal::render($constant->getValue(), strlen($prefix));
         } catch (InvalidArgumentException $exception) {
             throw new InvalidArgumentException(sprintf('The constant %s::%s cannot be dumped: %s', $class, $constant->getName(), $exception->getMessage()), $exception->getCode(), previous: $exception);
         }
-    }
-
-    /**
-     * @param int $column where the literal starts on its line, to keep an array within the line width
-     */
-    private function literal(mixed $value, int $column, int $depth): string
-    {
-        return match (true) {
-            null === $value => 'null',
-            is_bool($value) => $value ? 'true' : 'false',
-            is_int($value) => (string) $value,
-            // The shortest notation that reads back the same float, as JavaScript writes it
-            is_float($value) => json_encode($value, JSON_THROW_ON_ERROR),
-            is_string($value) => TypeScript::quote($value),
-            $value instanceof BackedEnum => $this->literal($value->value, $column, $depth),
-            $value instanceof UnitEnum => TypeScript::quote($value->name),
-            is_array($value) => $this->array($value, $column, $depth),
-            default => throw new InvalidArgumentException(sprintf('a %s has no JavaScript literal.', get_debug_type($value))),
-        };
-    }
-
-    /**
-     * A list as an array, a map as an object, frozen. On one line when it fits, one item per line otherwise; an object
-     * always one property per line, as Biome keeps them.
-     *
-     * @param array<array-key, mixed> $value
-     */
-    private function array(array $value, int $column, int $depth): string
-    {
-        $indent = str_repeat('    ', $depth + 1);
-        if (array_is_list($value)) {
-            $items = array_map(fn (mixed $item): string => $this->literal($item, strlen($indent), $depth + 1), $value);
-            $inline = sprintf('Object.freeze([%s])', implode(', ', $items));
-            if ([] === $items || (!str_contains($inline, "\n") && $column + strlen($inline) <= self::LINE_WIDTH)) {
-                return $inline;
-            }
-
-            return sprintf("Object.freeze([\n%s,\n%s])", $indent . implode(",\n" . $indent, $items), str_repeat('    ', $depth));
-        }
-
-        $properties = [];
-        foreach ($value as $key => $item) {
-            $key = TypeScript::key((string) $key);
-            $properties[] = sprintf('%s%s: %s,', $indent, $key, $this->literal($item, strlen($indent . $key) + 2, $depth + 1));
-        }
-
-        // Never empty here: an empty array is a list
-        return sprintf("Object.freeze({\n%s\n%s})", implode("\n", $properties), str_repeat('    ', $depth));
     }
 }

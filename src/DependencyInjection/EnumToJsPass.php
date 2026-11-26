@@ -53,17 +53,55 @@ final class EnumToJsPass implements CompilerPassInterface
         }
 
         $enums = [];
+        $methods = [];
         foreach ([...$this->findTaggedEnums($container), ...$this->findScannedEnums($container)] as [$class, $name]) {
             if (isset($enums[$name]) && $enums[$name] !== $class) {
                 throw new InvalidArgumentException(sprintf('The enums "%s" and "%s" are both dumped as "%s": give one a name.', $enums[$name], $class, $name));
             }
 
             $enums[$name] = $class;
+            $enumMethods = $this->getMethods($container, $class);
+            if ([] !== $enumMethods) {
+                $methods[$name] = $enumMethods;
+            }
         }
 
         ksort($enums);
+        ksort($methods);
 
-        $container->getDefinition(self::DUMPER)->replaceArgument('$enums', $enums);
+        $container->getDefinition(self::DUMPER)
+            ->replaceArgument('$enums', $enums)
+            ->replaceArgument('$methods', $methods);
+    }
+
+    /**
+     * The methods of #[EnumToJs(methods: [...])], checked: each one is called on every case by the dump.
+     *
+     * @param class-string<UnitEnum> $enum
+     *
+     * @return list<string>
+     */
+    private function getMethods(ContainerBuilder $container, string $enum): array
+    {
+        $reflection = $container->getReflectionClass($enum, false);
+        $attribute = $reflection?->getAttributes(EnumToJs::class)[0] ?? null;
+        if (!$reflection instanceof ReflectionClass || null === $attribute) {
+            return [];
+        }
+
+        $methods = $attribute->newInstance()->methods;
+        foreach ($methods as $method) {
+            if (!$reflection->hasMethod($method)) {
+                throw new InvalidArgumentException(sprintf('The #[EnumToJs] method "%s" of "%s" does not exist.', $method, $enum));
+            }
+
+            $reflectionMethod = $reflection->getMethod($method);
+            if (!$reflectionMethod->isPublic() || $reflectionMethod->isStatic() || $reflectionMethod->getNumberOfRequiredParameters() > 0) {
+                throw new InvalidArgumentException(sprintf('The #[EnumToJs] method "%s::%s()" must be public, not static, and take no required parameter.', $enum, $method));
+            }
+        }
+
+        return $methods;
     }
 
     /**
