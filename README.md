@@ -357,7 +357,8 @@ final class LeaseFormVariants implements FormVariantProviderInterface
 With `options` or a `matrix` too, each variant of the provider is built with each combination, its own options winning.
 A matrix stops at 64 builds.
 
-Build the data in memory: the dump must give the same files on every machine, never read it from a database.
+Build the data in memory: the dump must give the same files on every machine, never read it from a database. An entity
+field is built without its choices, so the dump runs no query.
 
 A field every build has, but the template renders only sometimes (`{% if … %}{{ form_row(form.sharedAccount) }}`, the
 others marked rendered with `setRendered`), is made optional by its dot path, so the shape does not promise it:

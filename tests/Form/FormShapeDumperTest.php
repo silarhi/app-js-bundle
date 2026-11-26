@@ -13,6 +13,11 @@ declare(strict_types=1);
 
 namespace Silarhi\AppJsBundle\Tests\Form;
 
+use Doctrine\DBAL\DriverManager;
+use Doctrine\ORM\Configuration;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Mapping\Driver\AttributeDriver;
+use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -30,17 +35,21 @@ use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\InvokableListener;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\Item;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\ListenersType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\NamedItem;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\PlaceType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\RenderedItemsType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\RequiredOptionType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\StaticListenerType;
 use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\SwitchingType;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\UnreachableDatabaseDriver;
 use Silarhi\AppJsBundle\Tests\Fixtures\ServiceLocator;
 use Silarhi\AppJsBundle\Writer\Format;
 use stdClass;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\Extension\Core\CoreExtension;
 use Symfony\Component\Form\FormFactory;
 use Symfony\Component\Form\FormRegistry;
 use Symfony\Component\Form\FormTypeInterface;
+use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\ResolvedFormTypeFactory;
 
 final class FormShapeDumperTest extends TestCase
@@ -256,8 +265,7 @@ final class FormShapeDumperTest extends TestCase
     public function testFailsOnAProviderOfTheWrongType(): void
     {
         $dumper = new FormShapeDumper(
-            $factory = new FormFactory($registry = new FormRegistry([new CoreExtension()], new ResolvedFormTypeFactory())),
-            $registry,
+            new FormRegistry([new CoreExtension()], new ResolvedFormTypeFactory()),
             new ServiceLocator([SwitchingType::class => static fn (): stdClass => new stdClass()]),
             [SwitchingType::class => ['name' => 'SwitchingForm', 'dynamic' => true]],
         );
@@ -337,6 +345,38 @@ final class FormShapeDumperTest extends TestCase
             TS, $dump->files['ChoicesForm.ts']);
     }
 
+    public function testBuildsTheEntityFieldsWithoutQueryingTheDatabase(): void
+    {
+        $config = new Configuration();
+        $config->setMetadataDriverImpl(new AttributeDriver([__DIR__ . '/../Fixtures/Dumper']));
+        if (\PHP_VERSION_ID >= 80400) {
+            $config->enableNativeLazyObjects(true);
+        } else {
+            $config->setProxyDir(sys_get_temp_dir());
+            $config->setProxyNamespace('Silarhi\\AppJsBundle\\Tests\\Proxies');
+        }
+
+        $entityManager = new EntityManager(DriverManager::getConnection(['driverClass' => UnreachableDatabaseDriver::class]), $config);
+        $managerRegistry = self::createStub(ManagerRegistry::class);
+        $managerRegistry->method('getManagerForClass')->willReturn($entityManager);
+
+        $registry = new FormRegistry([
+            new CoreExtension(),
+            new PreloadedExtension([new EntityType($managerRegistry)], []),
+        ], new ResolvedFormTypeFactory());
+        $dump = (new FormShapeDumper($registry, new ServiceLocator([]), [PlaceType::class => ['name' => 'PlaceForm', 'dynamic' => true]]))->dump();
+
+        self::assertStringContainsString(<<<'TS'
+            export interface PlaceForm {
+                name: FormField<HTMLInputElement, string>
+                country: FormField<HTMLSelectElement, string | null>
+            }
+            TS, $dump->files['PlaceForm.ts']);
+        // The application's own form factory still loads the choices from the database
+        $this->expectExceptionMessage('The dump connected to the database.');
+        (new FormFactory($registry))->create(PlaceType::class)->createView();
+    }
+
     /**
      * @param array<class-string<FormTypeInterface<mixed>>, array{name: string, dynamic: bool, optional?: list<string>}> $forms
      * @param array<class-string, FormVariant|list<FormVariant>>                                                         $variants
@@ -362,6 +402,6 @@ final class FormShapeDumperTest extends TestCase
             };
         }
 
-        return new FormShapeDumper(new FormFactory($registry), $registry, new ServiceLocator($providers), $forms, $format);
+        return new FormShapeDumper($registry, new ServiceLocator($providers), $forms, $format);
     }
 }

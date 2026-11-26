@@ -4,6 +4,14 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.11.1] - Unreleased
+
+### Fixed
+
+- `app-js:dump-forms` builds an entity field without its choices, so it no longer connects to the database: a form
+  with a Doctrine `EntityType` field (embedded forms included) failed with "Connection refused" where no database runs,
+  as in a lint CI job. Its shape stays `string`.
+
 ## [0.11.0] - 2026-11-26
 
 ### Added
@@ -145,6 +153,7 @@ Status]`, a JSDoc `@typedef` for `format: js`), and `#[EnumToJs(methods: ['label
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.11.1]: https://github.com/silarhi/app-js-bundle/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/silarhi/app-js-bundle/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/silarhi/app-js-bundle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/silarhi/app-js-bundle/compare/v0.8.0...v0.9.0

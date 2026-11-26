@@ -22,6 +22,7 @@ use function is_string;
 use LogicException;
 use Psr\Container\ContainerInterface;
 use ReflectionFunction;
+use Silarhi\AppJsBundle\Form\Extension\EntityWithoutChoicesTypeExtension;
 use Silarhi\AppJsBundle\Form\Shape\FormShapeBuilder;
 use Silarhi\AppJsBundle\Form\Shape\FormShapeRenderer;
 use Silarhi\AppJsBundle\Form\Shape\ShapeNode;
@@ -34,6 +35,7 @@ use function sprintf;
 use Symfony\Component\Form\Button;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormFactoryBuilder;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormRegistryInterface;
@@ -47,12 +49,13 @@ use Throwable;
  */
 final readonly class FormShapeDumper
 {
+    private FormFactoryInterface $formFactory;
+
     /**
      * @param ContainerInterface                                                                                         $variantProviders the FormVariantProviderInterface of each form type that has variants
      * @param array<class-string<FormTypeInterface<mixed>>, array{name: string, dynamic: bool, optional?: list<string>}> $forms            the form types marked #[FormToJs]
      */
     public function __construct(
-        private FormFactoryInterface $formFactory,
         private FormRegistryInterface $formRegistry,
         private ContainerInterface $variantProviders,
         private array $forms,
@@ -60,6 +63,11 @@ final readonly class FormShapeDumper
         private FormShapeBuilder $shapeBuilder = new FormShapeBuilder(),
         private FormShapeRenderer $shapeRenderer = new FormShapeRenderer(),
     ) {
+        // A factory of the dump only, so the application still builds its entity fields with their choices
+        $this->formFactory = (new FormFactoryBuilder())
+            ->addExtensions($formRegistry->getExtensions())
+            ->addTypeExtension(new EntityWithoutChoicesTypeExtension())
+            ->getFormFactory();
     }
 
     /** The extension of the dumped files: ts, or d.ts for JavaScript (a shape is a type only, read through JSDoc). */
