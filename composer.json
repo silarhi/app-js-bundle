@@ -1,6 +1,6 @@
 {
     "name": "silarhi/app-js-bundle",
-    "description": "load_page Twig function, TypeScript enums and typed form shapes for Symfony — the PHP companion to @silarhi/app-js",
+    "description": "load_page Twig function, TypeScript enums and typed form shapes for Symfony, the PHP companion to @silarhi/app-js",
     "license": "MIT",
     "type": "symfony-bundle",
     "keywords": [
