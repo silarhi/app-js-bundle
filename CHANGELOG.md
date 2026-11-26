@@ -21,6 +21,7 @@ Status]`, a JSDoc `@typedef` for `format: js`), and `#[EnumToJs(methods: ['label
 - `FormViolations::collect($form)` and `FormViolationsResponse` (a 422 JSON response): the errors of a form keyed by
   the paths `formView()` reads (`phones.0.number`, `''` for the form itself), for `postForm()` of
   `@silarhi/app-js/http`.
+- `app-js:dump` runs every dump, with `--check` and `--strict`.
 - `--check -v` shows the diff of each file out of date.
 
 ### Changed

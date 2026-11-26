@@ -16,6 +16,7 @@ namespace Silarhi\AppJsBundle;
 use Override;
 use Silarhi\AppJsBundle\Attribute\ConstantsToJs;
 use Silarhi\AppJsBundle\Attribute\EnumToJs;
+use Silarhi\AppJsBundle\Command\DumpCommand;
 use Silarhi\AppJsBundle\Command\DumpConstantsCommand;
 use Silarhi\AppJsBundle\Command\DumpEnumsCommand;
 use Silarhi\AppJsBundle\Command\DumpFormsCommand;
@@ -127,6 +128,8 @@ final class SilarhiAppJsBundle extends AbstractBundle
         $formAvailable = interface_exists(FormFactoryInterface::class);
 
         $services->set('silarhi_app_js.writer', GeneratedFilesWriter::class);
+        $services->set('silarhi_app_js.command.dump', DumpCommand::class)
+            ->tag('console.command');
 
         // The enums are services of the application's resources: their definitions carry the attribute to the pass
         $builder->registerAttributeForAutoconfiguration(EnumToJs::class, static function (ChildDefinition $definition, EnumToJs $attribute): void {

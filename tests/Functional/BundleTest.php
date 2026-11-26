@@ -149,6 +149,25 @@ final class BundleTest extends KernelTestCase
         self::assertStringContainsString('3 enum file(s) up to date.', $tester->getDisplay());
     }
 
+    public function testDumpsEverythingThenChecksIt(): void
+    {
+        $check = $this->executeCommand('app-js:dump', ['--check' => true]);
+        self::assertSame(Command::FAILURE, $check->getStatusCode());
+        // Every dump ran
+        $display = (string) preg_replace('/\s+/', ' ', $check->getDisplay());
+        self::assertStringContainsString('enum file(s) out of date', $display);
+        self::assertStringContainsString('constants file(s) out of date', $display);
+        self::assertStringContainsString('form file(s) out of date', $display);
+
+        $dump = $this->executeCommand('app-js:dump');
+        $dump->assertCommandIsSuccessful();
+        self::assertStringContainsString('Dumped 3 enum(s)', $dump->getDisplay());
+        self::assertStringContainsString('Dumped 5 form shape(s)', $dump->getDisplay());
+
+        $this->executeCommand('app-js:dump', ['--check' => true])->assertCommandIsSuccessful();
+        self::assertSame(Command::FAILURE, $this->executeCommand('app-js:dump', ['--check' => true, '--strict' => true])->getStatusCode());
+    }
+
     public function testDumpsTheTypeAndTheMethodsOfAnEnum(): void
     {
         $this->executeCommand('app-js:dump-enums')->assertCommandIsSuccessful();

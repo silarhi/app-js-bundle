@@ -41,6 +41,7 @@
 - `app-js:dump-constants`, the public constants of the classes marked `#[ConstantsToJs]`, so a limit lives in one place;
 - `app-js:dump-forms`, the shape of the form types marked `#[FormToJs]`, for `formView<Shape>()` to check form paths
   and choice values when compiling;
+- `app-js:dump`, every dump at once;
 - `FormViolations` and `FormViolationsResponse`, the errors of a form keyed by the paths `formView()` reads.
 
 ## Install
@@ -379,13 +380,12 @@ const form = formView(container.querySelector('form'))
 Commit the dumped files and check they are up to date:
 
 ```bash
-bin/console app-js:dump-enums --check
-bin/console app-js:dump-constants --check
-bin/console app-js:dump-forms --check --strict
+bin/console app-js:dump --check --strict
 ```
 
-`--check` fails when a file would change, without writing it, and lists those files; with `-v`, it shows their
-diff. `--strict` fails on the warnings.
+`app-js:dump` runs `app-js:dump-enums`, `app-js:dump-constants` and `app-js:dump-forms` (when the form component is
+enabled), each one even when another fails, with the same options. `--check` fails when a file would change, without
+writing it, and lists those files; with `-v`, it shows their diff. `--strict` fails on the warnings of the forms.
 
 ## Form errors
 
