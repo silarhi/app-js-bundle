@@ -51,6 +51,9 @@ use UnitEnum;
  */
 final readonly class EnumDumper
 {
+    /** Biome's line width: a longer declaration is broken after its `=`, as Biome breaks it */
+    private const LINE_WIDTH = 120;
+
     /**
      * @param array<string, class-string<UnitEnum>> $enums   the enums marked #[EnumToJs], by module name
      * @param array<string, list<string>>           $methods the methods to dump the results of, by module name
@@ -117,7 +120,7 @@ final readonly class EnumDumper
         foreach ($cases as $case) {
             $constant = u($case->name)->snake()->upper()->toString() . '_NAME';
             $exports[$constant] = $case->name;
-            $constants[] = sprintf('export const %s = %s', $constant, TypeScript::quote($case->name));
+            $constants[] = $this->declaration('export const ' . $constant, TypeScript::quote($case->name));
             $properties[] = sprintf('    %s: %s,', $case->name, $this->renderValue($case));
         }
 
@@ -127,7 +130,7 @@ final readonly class EnumDumper
             . sprintf("export default %s\n\n", $name)
             . (Format::JavaScript === $this->format
                 ? sprintf("/** @typedef {(typeof %s)[keyof typeof %s]} %s */\n", $name, $name, $type)
-                : sprintf("export type %s = (typeof %s)[keyof typeof %s]\n", $type, $name, $name));
+                : $this->declaration('export type ' . $type, sprintf('(typeof %s)[keyof typeof %s]', $name, $name)) . "\n");
 
         foreach ($methods as $method) {
             $constant = u($method)->snake()->upper()->toString();
@@ -140,6 +143,17 @@ final readonly class EnumDumper
         }
 
         return $code;
+    }
+
+    /**
+     * `export const X = …` or `export type X = …` on one line when it fits, else broken after its `=` with the value
+     * indented on the next line, even when the value alone is still too long: Biome breaks a string or a type there.
+     */
+    private function declaration(string $declaration, string $value): string
+    {
+        $line = $declaration . ' = ' . $value;
+
+        return strlen($line) <= self::LINE_WIDTH ? $line : $declaration . " =\n    " . $value;
     }
 
     private function renderValue(UnitEnum $case): string
