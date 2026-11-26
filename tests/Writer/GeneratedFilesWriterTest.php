@@ -43,6 +43,16 @@ final class GeneratedFilesWriterTest extends TestCase
         self::assertFileDoesNotExist($this->directory . '/sub/B.ts');
     }
 
+    public function testDiffsAFileOnDiskWithItsContent(): void
+    {
+        $writer = new GeneratedFilesWriter();
+        $writer->write($this->directory, ['A.ts' => "a\nb\n"], 'ts');
+
+        self::assertSame("--- a/A.ts\n+++ b/A.ts\n@@ -1,2 +1,2 @@\n a\n-b\n+c\n", $writer->getDiff($this->directory, 'A.ts', "a\nc\n"));
+        self::assertSame("--- a/A.ts\n+++ b/A.ts\n@@ -1,2 +0,0 @@\n-a\n-b\n", $writer->getDiff($this->directory, 'A.ts', null));
+        self::assertSame("--- a/B.ts\n+++ b/B.ts\n@@ -0,0 +1,1 @@\n+b\n", $writer->getDiff($this->directory, 'B.ts', "b\n"));
+    }
+
     public function testKeepsTheFilesWithAnotherExtension(): void
     {
         (new Filesystem())->dumpFile($this->directory . '/README.md', 'kept');

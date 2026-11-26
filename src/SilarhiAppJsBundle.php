@@ -16,6 +16,7 @@ namespace Silarhi\AppJsBundle;
 use Override;
 use Silarhi\AppJsBundle\Attribute\ConstantsToJs;
 use Silarhi\AppJsBundle\Attribute\EnumToJs;
+use Silarhi\AppJsBundle\Command\DumpCommand;
 use Silarhi\AppJsBundle\Command\DumpConstantsCommand;
 use Silarhi\AppJsBundle\Command\DumpEnumsCommand;
 use Silarhi\AppJsBundle\Command\DumpFormsCommand;
@@ -127,6 +128,8 @@ final class SilarhiAppJsBundle extends AbstractBundle
         $formAvailable = interface_exists(FormFactoryInterface::class);
 
         $services->set('silarhi_app_js.writer', GeneratedFilesWriter::class);
+        $services->set('silarhi_app_js.command.dump', DumpCommand::class)
+            ->tag('console.command');
 
         // The enums are services of the application's resources: their definitions carry the attribute to the pass
         $builder->registerAttributeForAutoconfiguration(EnumToJs::class, static function (ChildDefinition $definition, EnumToJs $attribute): void {
@@ -136,6 +139,7 @@ final class SilarhiAppJsBundle extends AbstractBundle
         $builder->setParameter(EnumToJsPass::PATHS, $config['enums']['paths']);
         $services->set(EnumToJsPass::DUMPER, EnumDumper::class)
             ->arg('$enums', new AbstractArgument('set by EnumToJsPass'))
+            ->arg('$methods', new AbstractArgument('set by EnumToJsPass'))
             ->arg('$format', Format::from($config['enums']['format']));
         $services->set('silarhi_app_js.command.dump_enums', DumpEnumsCommand::class)
             ->args([
@@ -164,6 +168,7 @@ final class SilarhiAppJsBundle extends AbstractBundle
 
         if (class_exists(Environment::class)) {
             $services->set('silarhi_app_js.twig_extension', AppJsExtension::class)
+                ->args([service('translator')->nullOnInvalid()])
                 ->tag('twig.extension');
         }
 

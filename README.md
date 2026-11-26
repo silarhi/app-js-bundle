@@ -40,7 +40,9 @@
 - `app-js:dump-enums`, the PHP enums marked `#[EnumToJs]` as TypeScript or JavaScript modules;
 - `app-js:dump-constants`, the public constants of the classes marked `#[ConstantsToJs]`, so a limit lives in one place;
 - `app-js:dump-forms`, the shape of the form types marked `#[FormToJs]`, for `formView<Shape>()` to check form paths
-  when compiling.
+  and choice values when compiling;
+- `app-js:dump`, every dump at once;
+- `FormViolations` and `FormViolationsResponse`, the errors of a form keyed by the paths `formView()` reads.
 
 ## Install
 
@@ -64,6 +66,17 @@ return [
 ```
 
 renders the `data-page` and `data-page-params` attributes that `@silarhi/app-js` reads to load the page modules.
+
+The params are JSON, with the values JSON cannot encode on its own turned into what a page reads:
+
+```twig
+<div {{ load_page('party', {form: form, startsAt: party.startsAt, status: party.status, title: t('party.title')}) }}>
+```
+
+- a form view is its id, for `formView(form)`;
+- a date is in ISO 8601 (`2026-11-26T10:30:00+01:00`);
+- an enum case is its value, or its name for a unit enum;
+- a translatable message (`t('party.title')`) is translated in the current locale.
 
 ## Enums
 
@@ -93,10 +106,50 @@ const LeaseStatus = Object.freeze({
     Active: 'active',
 })
 export default LeaseStatus
+
+export type LeaseStatusValue = (typeof LeaseStatus)[keyof typeof LeaseStatus]
 ```
 
 Only the enums marked `#[EnumToJs]` are dumped (`#[EnumToJs(name: 'Status')]` renames the module). Unit enums take
-their case names as values.
+their case names as values. `LeaseStatusValue` is the union of the values (`'draft' | 'active'`); with `format: js`, it
+is a JSDoc `@typedef`.
+
+The results of the methods named in `methods` are dumped too, one map per method, by case value, so the page reads the
+label or the color of a value it got:
+
+```php
+#[EnumToJs(methods: ['label', 'color'])]
+enum LeaseStatus: string
+{
+    // ...
+
+    public function label(): TranslatableMessage
+    {
+        return t('lease_status.' . $this->value);
+    }
+
+    public function color(): string
+    {
+        return self::Active === $this ? 'success' : 'secondary';
+    }
+}
+```
+
+```ts
+export const LABEL = Object.freeze({
+    draft: 'lease_status.draft',
+    active: 'lease_status.active',
+})
+
+export const COLOR = Object.freeze({
+    draft: 'secondary',
+    active: 'success',
+})
+```
+
+A method is public, not static, and takes no required parameter; its export is its name in upper snake case. A result
+is dumped as a constant is (see [Constants](#constants)), and a translatable message as its key, for the page's
+translator: the dump never depends on the locale.
 
 On Symfony 7.3+, the bundle finds them through autoconfiguration, wherever they live: an enum must be loaded by a
 service resource of the application, as the default `App\` resource of `config/services.yaml` loads `src/`, and not
@@ -164,7 +217,8 @@ import type { FormCollection, FormField } from '@silarhi/app-js/form'
 export interface PartyForm {
     name: FormField<HTMLInputElement, string>
     country: FormField<HTMLSelectElement, string | null>
-    tags: FormField<HTMLElement, string[]>
+    status: FormField<HTMLSelectElement, 'draft' | 'active' | null>
+    tags: FormField<HTMLElement, ('work' | 'home')[]>
     address: {
         street: FormField<HTMLInputElement, string>
         city: FormField<HTMLInputElement, string>
@@ -184,7 +238,8 @@ const form = formView<PartyForm>(container.querySelector('form'))
 form.get('phones.0.number')
 form.get('adress.city') // TS2345
 form.get('country').element // HTMLSelectElement | null
-form.field('tags').value // string[]
+form.field('tags').value // ('work' | 'home')[]
+form.field('status').setValue('actve') // TS2345
 ```
 
 The shape is read from the form view, as `formView()` reads the DOM: embedded forms are nested objects, collections
@@ -193,7 +248,11 @@ take the shape of their prototype and rendered items, expanded choices are one f
 A field names the element it is rendered as and the value `field().value` reads, from the core type it extends:
 
 1. a choice (an entity, an enum, a country) is an `HTMLSelectElement` read as `string | null`, or `string[]` when
-   multiple; expanded, the container of its options read as `string`, or `string[]` when multiple;
+   multiple; expanded, the container of its options read as `string`, or `string[]` when multiple. Each `string` is
+   the union of the values of its options when the form renders them all: an enum or a list of choices
+   (`'draft' | 'active' | null`), `''` included when a placeholder option is rendered. An entity, whose values are ids
+   from the database, the Intl lists (country, currency, language, locale, timezone) and the selects of a date or a
+   time, whose years follow the current one, stay `string`;
 2. a checkbox is read as a `boolean`, a radio as `string | undefined` (the checked value of its group);
 3. a textarea and the other core types rendered as an input are read as a `string`; a button has no value.
 
@@ -321,12 +380,48 @@ const form = formView(container.querySelector('form'))
 Commit the dumped files and check they are up to date:
 
 ```bash
-bin/console app-js:dump-enums --check
-bin/console app-js:dump-constants --check
-bin/console app-js:dump-forms --check --strict
+bin/console app-js:dump --check --strict
 ```
 
-`--check` fails when a file would change, without writing it; `--strict` fails on the warnings.
+`app-js:dump` runs `app-js:dump-enums`, `app-js:dump-constants` and `app-js:dump-forms` (when the form component is
+enabled), each one even when another fails, with the same options. `--check` fails when a file would change, without
+writing it, and lists those files; with `-v`, it shows their diff. `--strict` fails on the warnings of the forms.
+
+## Form errors
+
+A form submitted through `postForm()` of `@silarhi/app-js/http` gets its errors back by the paths `formView()` reads:
+
+```php
+use Silarhi\AppJsBundle\Http\FormViolationsResponse;
+
+if ($form->isSubmitted() && !$form->isValid()) {
+    return new FormViolationsResponse($form); // a 422
+}
+```
+
+```json
+{
+    "violations": [
+        { "path": "", "message": "…" },
+        { "path": "phones.0.number", "message": "This value is not valid." }
+    ]
+}
+```
+
+```ts
+import { formView, showViolations } from '@silarhi/app-js/form'
+import { postForm, violationsOf } from '@silarhi/app-js/http'
+
+try {
+    await postForm(element.action, element)
+} catch (error) {
+    // is-invalid and invalid-feedback on each field, the errors of the form itself first in it
+    clear = showViolations(formView(element), violationsOf(error))
+}
+```
+
+The path of an error is the one of the form it is attached to, the root form's name left out; `''` holds the errors of
+the form itself. `FormViolations::collect($form)` gives the same list, for a response of your own.
 
 ## License
 

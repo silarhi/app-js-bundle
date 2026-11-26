@@ -13,9 +13,13 @@ declare(strict_types=1);
 
 namespace Silarhi\AppJsBundle\Form\Shape;
 
+use function count;
+use function in_array;
+
 use Silarhi\AppJsBundle\Writer\TypeScript;
 
 use function sprintf;
+use function strlen;
 
 /**
  * A form shape as a TypeScript module, formatted as Biome formats it. An embedded form whose type is dumped too, with
@@ -41,6 +45,9 @@ final class FormShapeRenderer
 {
     private const INDENT = '    ';
 
+    /** Biome's line width: a longer field type is broken as Biome breaks it */
+    private const LINE_WIDTH = 120;
+
     /**
      * @param array<class-string, array{name: string, shape: ShapeNode}> $references the dumped shapes, by form type
      */
@@ -49,8 +56,8 @@ final class FormShapeRenderer
         $imports = [];
         $interfaces = [];
         $declaration = [] === $shape->children
-            ? sprintf('export type %s = %s', $name, $this->renderType($shape, 0, $references, $imports, $interfaces))
-            : sprintf('export interface %s %s', $name, $this->renderType($shape, 0, $references, $imports, $interfaces));
+            ? sprintf('export type %s = %s', $name, $this->renderType($shape, 0, strlen(sprintf('export type %s = ', $name)), $references, $imports, $interfaces))
+            : sprintf('export interface %s %s', $name, $this->renderType($shape, 0, 0, $references, $imports, $interfaces));
 
         $imports = array_keys($imports);
         sort($imports);
@@ -71,11 +78,12 @@ final class FormShapeRenderer
     }
 
     /**
+     * @param int                                                        $column     where the type starts on its line
      * @param array<class-string, array{name: string, shape: ShapeNode}> $references
      * @param array<string, true>                                        $imports    the types of @silarhi/app-js/form used so far
      * @param array<string, true>                                        $interfaces the dumped interfaces referenced so far
      */
-    private function renderType(?ShapeNode $node, int $depth, array $references, array &$imports, array &$interfaces): string
+    private function renderType(?ShapeNode $node, int $depth, int $column, array $references, array &$imports, array &$interfaces): string
     {
         if (!$node instanceof ShapeNode) {
             $imports['AnyShape'] = true;
@@ -86,17 +94,13 @@ final class FormShapeRenderer
         if (ShapeKind::Field === $node->kind) {
             $imports['FormField'] = true;
 
-            return match (true) {
-                null !== $node->value => sprintf('FormField<%s, %s>', $node->element ?? 'HTMLElement', $node->value),
-                null !== $node->element => sprintf('FormField<%s>', $node->element),
-                default => 'FormField',
-            };
+            return $this->renderField($node, $depth, $column);
         }
 
         if (ShapeKind::Collection === $node->kind) {
             $imports['FormCollection'] = true;
 
-            return sprintf('FormCollection<%s>', $this->renderType($node->item, $depth, $references, $imports, $interfaces));
+            return $this->renderCollection($node, $depth, $column, $references, $imports, $interfaces);
         }
 
         // The root is the declaration itself, never a reference
@@ -112,11 +116,92 @@ final class FormShapeRenderer
         }
 
         $members = '';
-        $indent = str_repeat(self::INDENT, $depth + 1);
+        $indent = $this->getIndent($depth + 1);
         foreach ($node->children as $name => $child) {
-            $members .= sprintf("%s%s%s: %s\n", $indent, TypeScript::key($name), $node->isOptional($name) ? '?' : '', $this->renderType($child, $depth + 1, $references, $imports, $interfaces));
+            $member = $indent . TypeScript::key($name) . ($node->isOptional($name) ? '?' : '') . ': ';
+            $members .= $member . $this->renderType($child, $depth + 1, strlen($member), $references, $imports, $interfaces) . "\n";
         }
 
-        return "{\n" . $members . str_repeat(self::INDENT, $depth) . '}';
+        return "{\n" . $members . $this->getIndent($depth) . '}';
+    }
+
+    /**
+     * On one line when it fits, else its type arguments one per line, then its union one member per line, as Biome
+     * breaks them.
+     */
+    private function renderField(ShapeNode $node, int $depth, int $column): string
+    {
+        if (null === $node->value) {
+            return null !== $node->element ? sprintf('FormField<%s>', $node->element) : 'FormField';
+        }
+
+        $element = $node->element ?? 'HTMLElement';
+        $inline = sprintf('FormField<%s, %s>', $element, $this->renderValue($node, null));
+        if ($column + strlen($inline) <= self::LINE_WIDTH) {
+            return $inline;
+        }
+
+        $indent = $this->getIndent($depth + 1);
+
+        return sprintf("FormField<\n%s%s,\n%s%s\n%s>", $indent, $element, $indent, $this->renderValue($node, $depth + 1), $this->getIndent($depth));
+    }
+
+    /**
+     * The type a field is read as, its options in place of each string: `'a' | 'b' | null`, `('a' | 'b')[]`.
+     *
+     * @param int|null $depth the indentation level of the line the value starts on, to break a union that does not fit;
+     *                        null for one line
+     */
+    private function renderValue(ShapeNode $node, ?int $depth): string
+    {
+        $value = (string) $node->value;
+        if (null === $node->choices || !in_array($value, ['string', 'string | null', 'string[]'], true)) {
+            return $value;
+        }
+
+        $members = array_map(TypeScript::quote(...), $node->choices);
+        $list = 'string[]' === $value;
+        if (!$list && 'string | null' === $value) {
+            $members[] = 'null';
+        }
+
+        $union = implode(' | ', $members);
+        $inline = $list && count($members) > 1 ? '(' . $union . ')[]' : $union . ($list ? '[]' : '');
+        if (null === $depth || strlen($this->getIndent($depth) . $inline) <= self::LINE_WIDTH) {
+            return $inline;
+        }
+
+        if (!$list) {
+            return implode("\n" . $this->getIndent($depth), array_map(static fn (string $member): string => '| ' . $member, $members));
+        }
+
+        $indent = $this->getIndent($depth + 1);
+
+        return sprintf("(\n%s\n%s)[]", implode("\n", array_map(static fn (string $member): string => $indent . '| ' . $member, $members)), $this->getIndent($depth));
+    }
+
+    /**
+     * Hugging an object, else on one line when it fits, else its item on a line of its own, as Biome breaks it.
+     *
+     * @param array<class-string, array{name: string, shape: ShapeNode}> $references
+     * @param array<string, true>                                        $imports
+     * @param array<string, true>                                        $interfaces
+     */
+    private function renderCollection(ShapeNode $node, int $depth, int $column, array $references, array &$imports, array &$interfaces): string
+    {
+        $prefix = 'FormCollection<';
+        $item = $this->renderType($node->item, $depth, $column + strlen($prefix), $references, $imports, $interfaces);
+        if (str_starts_with($item, '{') || ($column + strlen($prefix . $item . '>') <= self::LINE_WIDTH && !str_contains($item, "\n"))) {
+            return $prefix . $item . '>';
+        }
+
+        $indent = $this->getIndent($depth + 1);
+
+        return sprintf("%s\n%s%s\n%s>", $prefix, $indent, $this->renderType($node->item, $depth + 1, strlen($indent), $references, $imports, $interfaces), $this->getIndent($depth));
+    }
+
+    private function getIndent(int $depth): string
+    {
+        return str_repeat(self::INDENT, $depth);
     }
 }

@@ -4,6 +4,32 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.10.0] - Unreleased
+
+### Added
+
+- `app-js:dump-forms` types the value of a choice as the union of its options: `FormField<HTMLSelectElement, 'draft' |
+'active' | null>` for an enum or a list of choices, `('a' | 'b')[]` when multiple, `''` included when a placeholder
+  option is rendered. The variants' options are merged. Entities, the Intl lists and the selects of a date or a time
+  stay `string`. A long field type is broken over lines as Biome breaks it.
+- `app-js:dump-enums` exports the type of the values (`export type StatusValue = (typeof Status)[keyof typeof
+Status]`, a JSDoc `@typedef` for `format: js`), and `#[EnumToJs(methods: ['label', 'color'])]` dumps the results of
+  those methods by case value (`export const LABEL = Object.freeze({ draft: 'status.draft' })`), a translatable
+  message as its key. A method that is not public, is static or takes a required parameter fails the container build.
+- `load_page()` passes a form view as its id, a date in ISO 8601, an enum case as its value (its name for a unit enum),
+  and translates a translatable message, at any depth of the params.
+- `FormViolations::collect($form)` and `FormViolationsResponse` (a 422 JSON response): the errors of a form keyed by
+  the paths `formView()` reads (`phones.0.number`, `''` for the form itself), for `postForm()` of
+  `@silarhi/app-js/http`.
+- `app-js:dump` runs every dump, with `--check` and `--strict`.
+- `--check -v` shows the diff of each file out of date.
+
+### Changed
+
+- The dumped form shapes of choices with typed values change: run `app-js:dump-forms` once, and a page that compared a
+  choice with a value it does not have no longer compiles.
+- `load_page('page', {})` renders `data-page-params="{}"` instead of `[]`, as without params.
+
 ## [0.9.0] - 2026-11-25
 
 ### Added
@@ -104,6 +130,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.10.0]: https://github.com/silarhi/app-js-bundle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/silarhi/app-js-bundle/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/silarhi/app-js-bundle/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/silarhi/app-js-bundle/compare/v0.6.0...v0.7.0

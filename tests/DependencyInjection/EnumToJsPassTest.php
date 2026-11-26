@@ -16,6 +16,7 @@ namespace Silarhi\AppJsBundle\Tests\DependencyInjection;
 use function dirname;
 
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\DependencyInjection\EnumToJsPass;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Kind;
@@ -23,6 +24,9 @@ use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Placeholder;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Status;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\VatRate;
 use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\NotAnEnum;
+use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\ParameterMethodEnum;
+use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\StaticMethodEnum;
+use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\UnknownMethodEnum;
 use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -39,6 +43,32 @@ final class EnumToJsPassTest extends TestCase
         (new EnumToJsPass())->process($container);
 
         self::assertSame(['Status' => Status::class, 'Vat' => VatRate::class], $container->getDefinition(EnumToJsPass::DUMPER)->getArgument('$enums'));
+        self::assertSame(['Status' => ['label', 'isFinal']], $container->getDefinition(EnumToJsPass::DUMPER)->getArgument('$methods'));
+    }
+
+    /**
+     * @param class-string $enum
+     */
+    #[DataProvider('invalidMethodProvider')]
+    public function testRefusesAMethodTheDumpCannotCall(string $enum, string $message): void
+    {
+        $container = $this->createContainer();
+        $container->register($enum, $enum)->addTag(EnumToJsPass::TAG);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        (new EnumToJsPass())->process($container);
+    }
+
+    /**
+     * @return iterable<string, array{class-string, string}>
+     */
+    public static function invalidMethodProvider(): iterable
+    {
+        yield 'unknown' => [UnknownMethodEnum::class, 'The #[EnumToJs] method "missing" of "' . UnknownMethodEnum::class . '" does not exist.'];
+        yield 'static' => [StaticMethodEnum::class, 'The #[EnumToJs] method "' . StaticMethodEnum::class . '::getDefault()" must be public, not static, and take no required parameter.'];
+        yield 'required parameter' => [ParameterMethodEnum::class, 'The #[EnumToJs] method "' . ParameterMethodEnum::class . '::describe()" must be public'];
     }
 
     public function testScansTheConfiguredDirectories(): void
@@ -108,7 +138,7 @@ final class EnumToJsPassTest extends TestCase
     private function createContainer(): ContainerBuilder
     {
         $container = new ContainerBuilder();
-        $container->setDefinition(EnumToJsPass::DUMPER, (new Definition())->setArgument('$enums', new AbstractArgument()));
+        $container->setDefinition(EnumToJsPass::DUMPER, (new Definition())->setArgument('$enums', new AbstractArgument())->setArgument('$methods', new AbstractArgument()));
 
         return $container;
     }

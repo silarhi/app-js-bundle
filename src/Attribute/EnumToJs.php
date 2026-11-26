@@ -18,6 +18,13 @@ use Attribute;
 /**
  * Dumps an enum as a TypeScript module (app-js:dump-enums). The enums without it are not dumped.
  *
+ * The methods named in "methods" are called on each case, their results dumped by case value:
+ *
+ *     #[EnumToJs(methods: ['label', 'color'])]
+ *     enum LeaseStatus: string
+ *
+ * gives `export const LABEL = Object.freeze({draft: 'lease_status.draft', …})`.
+ *
  * Found through autoconfiguration: the enum must be loaded by a service resource of the application (the default
  * `App\` one loads `src/Enum`), not excluded from it.
  */
@@ -25,9 +32,12 @@ use Attribute;
 final readonly class EnumToJs
 {
     /**
-     * @param string|null $name the name of the module and its file, the enum's short name by default
+     * @param string|null  $name    the name of the module and its file, the enum's short name by default
+     * @param list<string> $methods the public methods without required parameter to dump the result of, for each case
      */
-    public function __construct(public ?string $name = null)
-    {
+    public function __construct(
+        public ?string $name = null,
+        public array $methods = [],
+    ) {
     }
 }

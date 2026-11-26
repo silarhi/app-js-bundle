@@ -77,4 +77,17 @@ final readonly class GeneratedFilesWriter
 
         return $changes;
     }
+
+    /**
+     * @param string|null $content the content the file should have, null when it is no longer generated
+     *
+     * @return string the unified diff of the file on disk to its content, empty when they are equal
+     */
+    public function getDiff(string $directory, string $path, ?string $content): string
+    {
+        $file = $directory . '/' . $path;
+        $current = is_file($file) ? (string) file_get_contents($file) : '';
+
+        return LineDiff::getDiff($current, $content ?? '', $path);
+    }
 }

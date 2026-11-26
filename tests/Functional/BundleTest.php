@@ -71,8 +71,8 @@ final class BundleTest extends KernelTestCase
 
             export interface UserForm {
                 name: FormField<HTMLInputElement, string>
-                size: FormField<HTMLElement, string>
-                tags: FormField<HTMLElement, string[]>
+                size: FormField<HTMLElement, 's' | 'm'>
+                tags: FormField<HTMLElement, 'a'[]>
                 address: AddressForm
                 billingAddress: {
                     street: FormField<HTMLInputElement, string>
@@ -147,6 +147,48 @@ final class BundleTest extends KernelTestCase
 
         $tester->assertCommandIsSuccessful();
         self::assertStringContainsString('3 enum file(s) up to date.', $tester->getDisplay());
+    }
+
+    public function testDumpsEverythingThenChecksIt(): void
+    {
+        $check = $this->executeCommand('app-js:dump', ['--check' => true]);
+        self::assertSame(Command::FAILURE, $check->getStatusCode());
+        // Every dump ran
+        $display = (string) preg_replace('/\s+/', ' ', $check->getDisplay());
+        self::assertStringContainsString('enum file(s) out of date', $display);
+        self::assertStringContainsString('constants file(s) out of date', $display);
+        self::assertStringContainsString('form file(s) out of date', $display);
+
+        $dump = $this->executeCommand('app-js:dump');
+        $dump->assertCommandIsSuccessful();
+        self::assertStringContainsString('Dumped 3 enum(s)', $dump->getDisplay());
+        self::assertStringContainsString('Dumped 5 form shape(s)', $dump->getDisplay());
+
+        $this->executeCommand('app-js:dump', ['--check' => true])->assertCommandIsSuccessful();
+        self::assertSame(Command::FAILURE, $this->executeCommand('app-js:dump', ['--check' => true, '--strict' => true])->getStatusCode());
+    }
+
+    public function testDumpsTheTypeAndTheMethodsOfAnEnum(): void
+    {
+        $this->executeCommand('app-js:dump-enums')->assertCommandIsSuccessful();
+
+        $status = (string) file_get_contents(self::$kernel?->getCacheDir() . '/app_js/enums/Status.ts');
+        self::assertStringContainsString("export type StatusValue = (typeof Status)[keyof typeof Status]\n", $status);
+        self::assertStringContainsString("export const LABEL = Object.freeze({\n    draft: 'status.Draft',\n", $status);
+        self::assertStringContainsString("export const IS_FINAL = Object.freeze({\n    draft: false,\n", $status);
+    }
+
+    public function testCheckShowsTheDiffWhenVerbose(): void
+    {
+        $this->executeCommand('app-js:dump-forms')->assertCommandIsSuccessful();
+        $file = self::$kernel?->getCacheDir() . '/app_js/forms/PhoneForm.ts';
+        file_put_contents($file, str_replace('number: FormField<HTMLInputElement, string>', 'number: FormField', (string) file_get_contents($file)));
+
+        $display = $this->executeCommand('app-js:dump-forms', ['--check' => true], verbosity: OutputInterface::VERBOSITY_VERBOSE)->getDisplay();
+
+        self::assertStringContainsString("--- a/PhoneForm.ts\n+++ b/PhoneForm.ts\n", $display);
+        self::assertStringContainsString("-    number: FormField\n+    number: FormField<HTMLInputElement, string>\n", $display);
+        self::assertStringNotContainsString('--- a/', $this->executeCommand('app-js:dump-forms', ['--check' => true])->getDisplay());
     }
 
     public function testRendersLoadPage(): void
