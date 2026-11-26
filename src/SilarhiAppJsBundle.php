@@ -177,7 +177,6 @@ final class SilarhiAppJsBundle extends AbstractBundle
         }
 
         $services->set(FormToJsPass::DUMPER, FormShapeDumper::class)
-            ->arg('$formFactory', service('form.factory'))
             ->arg('$formRegistry', service('form.registry'))
             ->arg('$variantProviders', new AbstractArgument('set by FormToJsPass'))
             ->arg('$forms', new AbstractArgument('set by FormToJsPass'))

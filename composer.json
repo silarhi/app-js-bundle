@@ -33,6 +33,7 @@
         "symfony/string": "^6.4 || ^7.0 || ^8.0"
     },
     "require-dev": {
+        "doctrine/orm": "^3.5",
         "ergebnis/composer-normalize": "^2.58.0",
         "friendsofphp/php-cs-fixer": "^3.95.32",
         "phpstan/extension-installer": "^1.4.3",
@@ -43,6 +44,7 @@
         "rector/rector": "^2.9.2",
         "symfony/config": "^6.4 || ^7.0 || ^8.0",
         "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
+        "symfony/doctrine-bridge": "^6.4 || ^7.0 || ^8.0",
         "symfony/error-handler": "^6.4 || ^7.0 || ^8.0",
         "symfony/form": "^6.4 || ^7.0 || ^8.0",
         "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
