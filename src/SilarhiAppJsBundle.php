@@ -165,6 +165,7 @@ final class SilarhiAppJsBundle extends AbstractBundle
 
         if (class_exists(Environment::class)) {
             $services->set('silarhi_app_js.twig_extension', AppJsExtension::class)
+                ->args([service('translator')->nullOnInvalid()])
                 ->tag('twig.extension');
         }
 

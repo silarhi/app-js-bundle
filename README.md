@@ -65,6 +65,17 @@ return [
 
 renders the `data-page` and `data-page-params` attributes that `@silarhi/app-js` reads to load the page modules.
 
+The params are JSON, with the values JSON cannot encode on its own turned into what a page reads:
+
+```twig
+<div {{ load_page('party', {form: form, startsAt: party.startsAt, status: party.status, title: t('party.title')}) }}>
+```
+
+- a form view is its id, for `formView(form)`;
+- a date is in ISO 8601 (`2026-11-26T10:30:00+01:00`);
+- an enum case is its value, or its name for a unit enum;
+- a translatable message (`t('party.title')`) is translated in the current locale.
+
 ## Enums
 
 ```php

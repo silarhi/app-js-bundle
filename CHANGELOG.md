@@ -16,11 +16,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Status]`, a JSDoc `@typedef` for `format: js`), and `#[EnumToJs(methods: ['label', 'color'])]` dumps the results of
   those methods by case value (`export const LABEL = Object.freeze({ draft: 'status.draft' })`), a translatable
   message as its key. A method that is not public, is static or takes a required parameter fails the container build.
+- `load_page()` passes a form view as its id, a date in ISO 8601, an enum case as its value (its name for a unit enum),
+  and translates a translatable message, at any depth of the params.
 
 ### Changed
 
 - The dumped form shapes of choices with typed values change: run `app-js:dump-forms` once, and a page that compared a
   choice with a value it does not have no longer compiles.
+- `load_page('page', {})` renders `data-page-params="{}"` instead of `[]`, as without params.
 
 ## [0.9.0] - 2026-11-25
 
