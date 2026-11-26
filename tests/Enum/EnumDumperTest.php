@@ -17,6 +17,7 @@ use InvalidArgumentException;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\Enum\EnumDumper;
+use Silarhi\AppJsBundle\Tests\Fixtures\Dumper\LongCase;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Kind;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Placeholder;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Status;
@@ -24,6 +25,8 @@ use Silarhi\AppJsBundle\Tests\Fixtures\Enum\VatRate;
 use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\ObjectResultEnum;
 use Silarhi\AppJsBundle\Tests\Fixtures\Invalid\TakenExportEnum;
 use Silarhi\AppJsBundle\Writer\Format;
+
+use function sprintf;
 
 final class EnumDumperTest extends TestCase
 {
@@ -53,6 +56,35 @@ final class EnumDumperTest extends TestCase
             export type StatusValue = (typeof Status)[keyof typeof Status]
 
             TS, $files['Status.ts']);
+    }
+
+    public function testBreaksTheValueTypeAfterItsEqualSignWhenItOverflowsBiomesLineWidth(): void
+    {
+        $files = (new EnumDumper([
+            'BankOperationAttributableTo' => Kind::class,
+            // `export type <25>Value = (typeof <25>)[keyof typeof <25>]` is 119 characters, with 26 it is 122
+            str_repeat('A', 25) => Kind::class,
+            str_repeat('B', 26) => Kind::class,
+        ]))->getFiles();
+
+        self::assertStringEndsWith(<<<'TS'
+            export type BankOperationAttributableToValue =
+                (typeof BankOperationAttributableTo)[keyof typeof BankOperationAttributableTo]
+
+            TS, $files['BankOperationAttributableTo.ts']);
+        self::assertStringContainsString("\n" . sprintf('export type %1$sValue = (typeof %1$s)[keyof typeof %1$s]', str_repeat('A', 25)) . "\n", $files[str_repeat('A', 25) . '.ts']);
+        self::assertStringContainsString("\n" . sprintf('export type %1$sValue =', str_repeat('B', 26)) . "\n    " . sprintf('(typeof %1$s)[keyof typeof %1$s]', str_repeat('B', 26)) . "\n", $files[str_repeat('B', 26) . '.ts']);
+    }
+
+    public function testBreaksACaseNameConstantAfterItsEqualSignWhenItOverflowsBiomesLineWidth(): void
+    {
+        $files = (new EnumDumper(['LongCase' => LongCase::class]))->getFiles();
+
+        self::assertStringStartsWith(<<<'TS'
+            export const AGREEMENT_SIGNED_BY_EVERY_OWNER_OF_THE_BUILDING_BEFORE_THE_GENERAL_ASSEMBLY_NAME =
+                'AgreementSignedByEveryOwnerOfTheBuildingBeforeTheGeneralAssembly'
+
+            TS, $files['LongCase.ts']);
     }
 
     public function testRendersIntegerAndUnitEnums(): void

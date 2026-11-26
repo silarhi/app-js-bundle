@@ -4,6 +4,16 @@ All notable changes to `silarhi/app-js-bundle` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.11.2] - Unreleased
+
+### Fixed
+
+- `app-js:dump-enums` breaks the type of an enum's values after its `=` when the line is longer than 120 characters, as
+  Biome does: `export type BankOperationAttributableToValue =` then the type, indented, on the next line. A dumped
+  module of an enum with a long name no longer differs from what Biome writes, so a Biome run on it (a pre-commit hook)
+  no longer makes `--check` fail. A case name constant too long for the line (`export const …_NAME =`) is broken the
+  same way.
+
 ## [0.11.1] - 2026-11-26
 
 ### Fixed
@@ -153,6 +163,7 @@ Status]`, a JSDoc `@typedef` for `format: js`), and `#[EnumToJs(methods: ['label
 - A `format` option per dumper: `ts`, or `js` (`.js` enum modules, `.d.ts` form shapes for JSDoc).
 - `--check` on both commands, and `--strict` on `app-js:dump-forms`, for the CI.
 
+[0.11.2]: https://github.com/silarhi/app-js-bundle/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/silarhi/app-js-bundle/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/silarhi/app-js-bundle/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/silarhi/app-js-bundle/compare/v0.9.0...v0.10.0
