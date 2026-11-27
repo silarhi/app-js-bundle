@@ -53,8 +53,7 @@ final class Literal
             null === $value => 'null',
             is_bool($value) => $value ? 'true' : 'false',
             is_int($value) => (string) $value,
-            // The shortest notation that reads back the same float, as JavaScript writes it
-            is_float($value) => json_encode($value, JSON_THROW_ON_ERROR),
+            is_float($value) => self::renderFloat($value),
             is_string($value) => TypeScript::quote($value),
             $value instanceof BackedEnum => self::render($value->value, $column, $depth),
             $value instanceof UnitEnum => TypeScript::quote($value->name),
@@ -63,6 +62,21 @@ final class Literal
             is_array($value) => self::renderArray($value, $column, $depth),
             default => throw new InvalidArgumentException(sprintf('a %s has no JavaScript literal.', get_debug_type($value))),
         };
+    }
+
+    private static function renderFloat(float $value): string
+    {
+        // JSON has no literal for them, JavaScript has
+        if (is_nan($value)) {
+            return 'NaN';
+        }
+
+        if (is_infinite($value)) {
+            return $value > 0 ? 'Infinity' : '-Infinity';
+        }
+
+        // The shortest notation that reads back the same float, as JavaScript writes it
+        return json_encode($value, JSON_THROW_ON_ERROR);
     }
 
     /**
