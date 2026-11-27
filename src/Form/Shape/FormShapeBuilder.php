@@ -180,11 +180,12 @@ final class FormShapeBuilder
     {
         $values = [];
         foreach ($choices as $choice) {
-            $choiceValues = match (true) {
-                $choice instanceof ChoiceGroupView => $this->getChoiceValues($choice->choices),
-                $choice instanceof ChoiceView => [$choice->value],
-                default => [],
-            };
+            $choiceValues = [];
+            if ($choice instanceof ChoiceGroupView) {
+                $choiceValues = $this->getChoiceValues($choice->choices);
+            } elseif ($choice instanceof ChoiceView) {
+                $choiceValues = [$choice->value];
+            }
 
             foreach ($choiceValues as $value) {
                 if (!in_array($value, $values, true)) {

@@ -172,21 +172,19 @@ final class SilarhiAppJsBundle extends AbstractBundle
                 ->tag('twig.extension');
         }
 
-        if (!$formAvailable) {
-            return;
+        if ($formAvailable) {
+            $services->set(FormToJsPass::DUMPER, FormShapeDumper::class)
+                ->arg('$formRegistry', service('form.registry'))
+                ->arg('$variantProviders', new AbstractArgument('set by FormToJsPass'))
+                ->arg('$forms', new AbstractArgument('set by FormToJsPass'))
+                ->arg('$format', Format::from($config['forms']['format']));
+            $services->set(FormToJsPass::COMMAND, DumpFormsCommand::class)
+                ->args([
+                    service(FormToJsPass::DUMPER),
+                    service('silarhi_app_js.writer'),
+                    $config['forms']['output_dir'],
+                ])
+                ->tag('console.command');
         }
-
-        $services->set(FormToJsPass::DUMPER, FormShapeDumper::class)
-            ->arg('$formRegistry', service('form.registry'))
-            ->arg('$variantProviders', new AbstractArgument('set by FormToJsPass'))
-            ->arg('$forms', new AbstractArgument('set by FormToJsPass'))
-            ->arg('$format', Format::from($config['forms']['format']));
-        $services->set(FormToJsPass::COMMAND, DumpFormsCommand::class)
-            ->args([
-                service(FormToJsPass::DUMPER),
-                service('silarhi_app_js.writer'),
-                $config['forms']['output_dir'],
-            ])
-            ->tag('console.command');
     }
 }

@@ -293,6 +293,7 @@ final class FormShapeDumperTest extends TestCase
                 grouped: FormField<HTMLSelectElement, 'a' | 'b' | 'c' | null>
                 radios: FormField<HTMLElement, 'x' | 'y' | ''>
                 owner: FormField<HTMLSelectElement, string | null>
+                none: FormField<HTMLSelectElement, string | null>
                 level: FormField<HTMLSelectElement, '1' | '2' | '3' | null>
                 middle: FormField<
                     HTMLSelectElement,
