@@ -20,6 +20,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\DependencyInjection\EnumToJsPass;
+use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Internal;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Kind;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Placeholder;
 use Silarhi\AppJsBundle\Tests\Fixtures\Enum\Status;
@@ -50,6 +51,17 @@ final class EnumToJsPassTest extends TestCase
 
         self::assertSame(['Status' => Status::class, 'Vat' => VatRate::class], $container->getDefinition(EnumToJsPass::DUMPER)->getArgument('$enums'));
         self::assertSame(['Status' => ['label', 'isFinal']], $container->getDefinition(EnumToJsPass::DUMPER)->getArgument('$methods'));
+    }
+
+    public function testCollectsAnEnumTaggedWithoutTheAttribute(): void
+    {
+        $container = $this->createContainer();
+        $container->register(Internal::class, Internal::class)->addTag(EnumToJsPass::TAG);
+
+        (new EnumToJsPass())->process($container);
+
+        self::assertSame(['Internal' => Internal::class], $container->getDefinition(EnumToJsPass::DUMPER)->getArgument('$enums'));
+        self::assertSame([], $container->getDefinition(EnumToJsPass::DUMPER)->getArgument('$methods'));
     }
 
     /**

@@ -43,6 +43,8 @@ final class ChoicesType extends AbstractType
             ->add('grouped', ChoiceType::class, ['choices' => ['Group' => ['A' => 'a', 'B' => 'b'], 'C' => 'c'], 'preferred_choices' => ['c']])
             ->add('radios', ChoiceType::class, ['choices' => ['X' => 'x', 'Y' => 'y'], 'expanded' => true, 'required' => false])
             ->add('owner', FakeEntityType::class, ['choices' => ['Ann' => '1']])
+            // No choice: its values are not typed
+            ->add('none', ChoiceType::class, ['choices' => []])
             ->add('level', ChoiceType::class, ['choices' => true === $options['extended'] ? ['1' => '1', '3' => '3'] : ['1' => '1', '2' => '2']])
             // Its union fits on a line of its own
             ->add('middle', ChoiceType::class, ['choices' => array_combine(self::MIDDLE, self::MIDDLE)])

@@ -13,9 +13,11 @@ declare(strict_types=1);
 
 namespace Silarhi\AppJsBundle\Tests\Constants;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use Silarhi\AppJsBundle\Constants\ConstantsDumper;
+use Silarhi\AppJsBundle\Tests\Fixtures\ClosureConstants\Callbacks;
 use Silarhi\AppJsBundle\Tests\Fixtures\Constants\Format as FormatEnum;
 use Silarhi\AppJsBundle\Tests\Fixtures\Constants\Internals;
 use Silarhi\AppJsBundle\Tests\Fixtures\Constants\SearchLimits;
@@ -80,6 +82,15 @@ final class ConstantsDumperTest extends TestCase
             export const STATUS = 'draft'
 
             TS, (new ConstantsDumper(['Typed' => Typed::class]))->getFiles()['Typed.ts']);
+    }
+
+    #[RequiresPhp('>= 8.5.0')]
+    public function testRefusesAConstantWithoutJavaScriptLiteral(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The constant ' . Callbacks::class . '::NORMALIZE cannot be dumped: a Closure has no JavaScript literal.');
+
+        (new ConstantsDumper(['Callbacks' => Callbacks::class]))->getFiles();
     }
 
     public function testDumpsTheSameCodeAsJavaScript(): void

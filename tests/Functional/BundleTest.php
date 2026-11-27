@@ -15,7 +15,11 @@ namespace Silarhi\AppJsBundle\Tests\Functional;
 
 use function dirname;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Silarhi\AppJsBundle\Tests\Fixtures\TestKernel;
+
+use function sprintf;
+
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;
@@ -60,7 +64,7 @@ final class BundleTest extends KernelTestCase
         $tester = $this->executeCommand('app-js:dump-forms');
 
         $tester->assertCommandIsSuccessful();
-        self::assertStringContainsString('Dumped 5 form shape(s), 5 file(s) changed.', $tester->getDisplay());
+        self::assertStringContainsString('Dumped 6 form shape(s), 6 file(s) changed.', $tester->getDisplay());
 
         $directory = self::$kernel?->getCacheDir() . '/app_js/forms';
         self::assertSame(<<<'TS'
@@ -123,10 +127,21 @@ final class BundleTest extends KernelTestCase
     public function testListsTheChangedFilesWhenVerbose(): void
     {
         $enums = $this->executeCommand('app-js:dump-enums', [], verbosity: OutputInterface::VERBOSITY_VERBOSE)->getDisplay();
+        $constants = $this->executeCommand('app-js:dump-constants', [], verbosity: OutputInterface::VERBOSITY_VERBOSE)->getDisplay();
         $forms = $this->executeCommand('app-js:dump-forms', [], verbosity: OutputInterface::VERBOSITY_VERBOSE)->getDisplay();
 
         self::assertStringContainsString('* Status.ts', $enums);
+        self::assertStringContainsString('* Upload.ts', $constants);
         self::assertStringContainsString('* UserForm.ts', $forms);
+    }
+
+    public function testNotesTheFormsBuiltWithoutDataWhenVerbose(): void
+    {
+        // The lines of a note start with "!"
+        $verbose = (string) preg_replace('/\s+(?:!\s+)?/', ' ', $this->executeCommand('app-js:dump-forms', [], verbosity: OutputInterface::VERBOSITY_VERBOSE)->getDisplay());
+
+        self::assertStringContainsString('CompanyType (variant "default") is built without data: its empty data failed (Too few arguments', $verbose);
+        self::assertStringNotContainsString('is built without data', $this->executeCommand('app-js:dump-forms')->getDisplay());
     }
 
     public function testCheckFailsOnOutOfDateFormShapes(): void
@@ -135,7 +150,7 @@ final class BundleTest extends KernelTestCase
 
         self::assertSame(Command::FAILURE, $tester->getStatusCode());
         self::assertStringContainsString('* UserForm.ts', $tester->getDisplay());
-        self::assertStringContainsString('5 form file(s) out of date', (string) preg_replace('/\s+/', ' ', $tester->getDisplay()));
+        self::assertStringContainsString('6 form file(s) out of date', (string) preg_replace('/\s+/', ' ', $tester->getDisplay()));
     }
 
     public function testCheckFailsUntilTheFilesAreDumped(): void
@@ -162,7 +177,7 @@ final class BundleTest extends KernelTestCase
         $dump = $this->executeCommand('app-js:dump');
         $dump->assertCommandIsSuccessful();
         self::assertStringContainsString('Dumped 3 enum(s)', $dump->getDisplay());
-        self::assertStringContainsString('Dumped 5 form shape(s)', $dump->getDisplay());
+        self::assertStringContainsString('Dumped 6 form shape(s)', $dump->getDisplay());
 
         $this->executeCommand('app-js:dump', ['--check' => true])->assertCommandIsSuccessful();
         self::assertSame(Command::FAILURE, $this->executeCommand('app-js:dump', ['--check' => true, '--strict' => true])->getStatusCode());
@@ -189,6 +204,29 @@ final class BundleTest extends KernelTestCase
         self::assertStringContainsString("--- a/PhoneForm.ts\n+++ b/PhoneForm.ts\n", $display);
         self::assertStringContainsString("-    number: FormField\n+    number: FormField<HTMLInputElement, string>\n", $display);
         self::assertStringNotContainsString('--- a/', $this->executeCommand('app-js:dump-forms', ['--check' => true])->getDisplay());
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string, string}>
+     */
+    public static function provideStaleFiles(): iterable
+    {
+        yield 'an enum' => ['app-js:dump-enums', 'enums/Status.ts', "    draft: 'status.Draft',", "    draft: 'status.draft',"];
+        yield 'constants' => ['app-js:dump-constants', 'constants/Upload.ts', 'export const MAX_SIZE = 2000000', 'export const MAX_SIZE = 1'];
+    }
+
+    #[DataProvider('provideStaleFiles')]
+    public function testCheckShowsTheDiffOfAStaleFileWhenVerbose(string $command, string $path, string $line, string $staleLine): void
+    {
+        $this->executeCommand($command)->assertCommandIsSuccessful();
+        $file = self::$kernel?->getCacheDir() . '/app_js/' . $path;
+        file_put_contents($file, str_replace($line, $staleLine, (string) file_get_contents($file)));
+
+        $check = $this->executeCommand($command, ['--check' => true], verbosity: OutputInterface::VERBOSITY_VERBOSE);
+
+        self::assertSame(Command::FAILURE, $check->getStatusCode());
+        self::assertStringContainsString(sprintf("--- a/%1\$s\n+++ b/%1\$s\n", basename($path)), $check->getDisplay());
+        self::assertStringContainsString(sprintf("-%s\n+%s\n", $staleLine, $line), $check->getDisplay());
     }
 
     public function testRendersLoadPage(): void
